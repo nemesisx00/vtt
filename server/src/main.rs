@@ -51,7 +51,19 @@ async fn handleClient(future: UpgradeFut) -> Result<()>
 				println!("Client disconnected!");
 				break;
 			},
-			OpCode::Text | OpCode::Binary => ws.write_frame(frame).await?,
+			//Echo back
+			OpCode::Text | OpCode::Binary => {
+				if frame.opcode == OpCode::Text
+				{
+					match std::str::from_utf8(frame.payload.as_ref())
+					{
+						Ok(s) => println!("Input: '{}'", s),
+						Err(e) => println!("Failed to parse packet: {:?}", e),
+					}
+				}
+				
+				ws.write_frame(frame).await?;
+			},
 			_ => {},
 		}
 	}
