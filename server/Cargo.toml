@@ -1,0 +1,20 @@
+[package]
+authors = ["Peter Lunneberg"]
+edition = "2021"
+name = "vtt-server"
+publish = false
+version = "0.1.0"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+anyhow = "~1"
+fastwebsockets = { version = "~0", features = [ "upgrade" ] }
+http-body-util = "~0"
+hyper = "~1"
+hyper-util = "~0"
+tokio = { version = "~1", features = [ "macros" ] }
+
+[lints.rust]
+non_snake_case = "allow"
+non_upper_case_globals = "allow"
