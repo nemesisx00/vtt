@@ -1,2 +1,3 @@
 # vtt
- An open source Virtual Tabletop.
+
+An open source Virtual Tabletop.
