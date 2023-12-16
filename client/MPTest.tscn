@@ -1,0 +1,13 @@
+[gd_scene load_steps=2 format=3 uid="uid://db2e5rhhl5saf"]
+
+[ext_resource type="Script" path="res://scripts/Network/VttClient.cs" id="2_0cgqb"]
+
+[node name="Node" type="Node2D"]
+script = ExtResource("2_0cgqb")
+
+[node name="PeerId" type="Label" parent="."]
+unique_name_in_owner = true
+offset_right = 40.0
+offset_bottom = 23.0
+horizontal_alignment = 1
+vertical_alignment = 1
