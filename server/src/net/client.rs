@@ -109,7 +109,7 @@ impl WebSocketClient
 						ClientIdentity::Name => {
 							let obj: ClientIdentity = serde_json::from_str(json.as_str())?;
 							
-							//TODO: Expand this to safely handle ID collisions; Probably will require actual authentication
+							//TODO: Expand this to safely handle ID collisions; Probably will require actual authentication instead of the client just declaring an id
 							//Update the id in the message queue as well
 							if let Ok(queue) = getMessageQueue().try_lock()
 							{
@@ -117,6 +117,8 @@ impl WebSocketClient
 								self.id = obj.id;
 								queue.registerId(self.id);
 							}
+							
+							info!("Client id {}", self.id);
 							
 							let response = Frame::text(Payload::Owned(format!("Client ID set as {}", self.id).into_bytes()));
 							self.socket.write_frame(response).await?;
