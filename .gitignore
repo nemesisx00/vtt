@@ -1,4 +1,7 @@
 .vs/
 .vscode/
 .godot/
+dist/
 target/
+server/config.toml
+*.log
