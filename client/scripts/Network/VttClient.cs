@@ -64,7 +64,7 @@ public partial class VttClient : Node
 					if(data.Count > 0)
 					{
 						var text = Encoding.UTF8.GetString(data.ToArray());
-						GD.Print("Response: '", text, "'");
+						GD.Print(text);
 					}
 					
 					if(!sent)
