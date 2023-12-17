@@ -1,5 +1,6 @@
 mod client;
-mod messager;
+mod payload;
+mod queue;
 mod server;
 
 pub use server::WebSocketServer;
