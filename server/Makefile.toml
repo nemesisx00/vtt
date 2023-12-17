@@ -1,0 +1,17 @@
+[tasks.debug]
+dependencies = [
+	"buildDebug",
+]
+
+[tasks.release]
+dependencies = [
+	"buildRelease",
+]
+
+[tasks.buildDebug]
+command = "cargo"
+args = [ "build" ]
+
+[tasks.buildRelease]
+command = "cargo"
+args = [ "build", "--release" ]
