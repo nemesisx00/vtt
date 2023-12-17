@@ -2,22 +2,31 @@ using Godot;
 using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Text.Json;
+using Vtt.Network.Payload;
 
-namespace Vtt;
+namespace Vtt.Network;
 
 public partial class VttClient : Node
 {
+	[Signal]
+	public delegate void SocketConnectedEventHandler();
+	
+	[Export]
+	public long ClientId { get; set; }
+	
 	private bool connected = false;
-	private bool shouldConnect = true;
-	private bool sent = false;
+	private bool idSent = false;
 	private WebSocketPeer socket = new();
 	
 	public override void _Process(double delta)
 	{
-		if(!connected && shouldConnect)
-			connectSocket();
-		
 		pollSocket();
+	}
+	
+	public override void _Ready()
+	{
+		ClientId = Multiplayer.GetUniqueId();
 	}
 	
 	public override void _Notification(int what)
@@ -25,24 +34,35 @@ public partial class VttClient : Node
 		switch((long)what)
 		{
 			case NotificationWMCloseRequest:
-				disconnectSocket();
+				DisconnectSocket();
 				break;
 		}
 	}
 	
-	private void disconnectSocket()
+	public void ConnectSocket()
+	{
+		if(!connected)
+		{
+			var error = socket.ConnectToUrl("ws://127.0.0.1:7890");
+			connected = Error.Ok == error;
+		}
+	}
+	
+	public void DisconnectSocket()
 	{
 		if(connected)
 			socket.Close();
 	}
 	
-	private void connectSocket()
+	public void SendMessage<T>(T message)
+		where T: Message
 	{
-		var error = socket.ConnectToUrl("ws://127.0.0.1:7890");
-		connected = Error.Ok == error;
-		
 		if(connected)
-			shouldConnect = false;
+		{
+			var json = JsonSerializer.Serialize(message);
+			var payload = String.Format("{0}{1}", message.GetType().Name, json);
+			socket.SendText(payload);
+		}
 	}
 	
 	private void pollSocket()
@@ -67,10 +87,10 @@ public partial class VttClient : Node
 						GD.Print(text);
 					}
 					
-					if(!sent)
+					if(!idSent)
 					{
-						socket.SendText("Hello world!");
-						sent = true;
+						SendMessage(new ClientIdentity { id = ClientId });
+						idSent = true;
 					}
 					break;
 				
@@ -78,9 +98,7 @@ public partial class VttClient : Node
 					break;
 				
 				case WebSocketPeer.State.Closed:
-					var code = socket.GetCloseCode();
-					var reason = socket.GetCloseReason();
-					GD.Print(String.Format("Socket closed: {0} - {1}", code, reason));
+					GD.Print(String.Format("Socket closed: {0} - {1}", socket.GetCloseCode(), socket.GetCloseReason()));
 					connected = false;
 					break;
 				
