@@ -1,13 +1,57 @@
-[gd_scene load_steps=2 format=3 uid="uid://db2e5rhhl5saf"]
+[gd_scene load_steps=3 format=3 uid="uid://db2e5rhhl5saf"]
 
-[ext_resource type="Script" path="res://scripts/Network/VttClient.cs" id="2_0cgqb"]
+[ext_resource type="Script" path="res://scripts/Ui.cs" id="1_s02nj"]
+[ext_resource type="Script" path="res://scripts/network/VttClient.cs" id="2_0cgqb"]
 
-[node name="Node" type="Node2D"]
+[node name="Ui" type="MarginContainer"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_s02nj")
+
+[node name="Client" type="Node" parent="."]
+unique_name_in_owner = true
 script = ExtResource("2_0cgqb")
 
-[node name="PeerId" type="Label" parent="."]
+[node name="VBoxContainer" type="VBoxContainer" parent="."]
+layout_mode = 2
+
+[node name="HBoxContainer" type="HBoxContainer" parent="VBoxContainer"]
+layout_mode = 2
+alignment = 1
+
+[node name="Connect" type="Button" parent="VBoxContainer/HBoxContainer"]
 unique_name_in_owner = true
-offset_right = 40.0
-offset_bottom = 23.0
+layout_mode = 2
+text = "Connect"
+
+[node name="Message" type="Button" parent="VBoxContainer/HBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Send Message"
+
+[node name="Disconnect" type="Button" parent="VBoxContainer/HBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Disconnect"
+
+[node name="HBoxContainer2" type="HBoxContainer" parent="VBoxContainer"]
+layout_mode = 2
+alignment = 1
+
+[node name="PeerId" type="Label" parent="VBoxContainer/HBoxContainer2"]
+unique_name_in_owner = true
+layout_mode = 2
 horizontal_alignment = 1
 vertical_alignment = 1
+
+[node name="HBoxContainer3" type="HBoxContainer" parent="VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="Output" type="RichTextLabel" parent="VBoxContainer/HBoxContainer3"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
