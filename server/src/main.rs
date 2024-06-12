@@ -1,4 +1,5 @@
 mod config;
+mod data;
 mod net;
 
 use std::path::PathBuf;
@@ -19,6 +20,8 @@ const LoggerDefaultBaseDir: &'static str = ".";
 #[main(flavor = "current_thread")]
 async fn main() -> Result<()>
 {
+	let config = loadConfig()?;
+	
 	let mut logPath = PathBuf::from(LoggerDefaultBaseDir);
 	if let Some(path) = localDataPath()
 	{
@@ -40,11 +43,8 @@ async fn main() -> Result<()>
 	
 	let serverToken = cancelToken.clone();
 	tracker.spawn(async move {
-		if let Ok(config) = loadConfig()
-		{
-			let server = WebSocketServer::from(config);
-			let _ = server.start(serverToken).await;
-		}
+		let server = WebSocketServer::from(config);
+		let _ = server.start(serverToken).await;
 	});
 	tracker.close();
 	

@@ -4,7 +4,7 @@ use std::fs;
 use ::anyhow::Result;
 use ::directories::ProjectDirs;
 use ::toml;
-pub use self::config::Config;
+pub use self::config::{Config, ConfigDatabase};
 
 pub const ConfigPath: &'static str = "./config.toml";
 

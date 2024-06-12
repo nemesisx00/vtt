@@ -1,4 +1,5 @@
 use ::serde::Deserialize;
+use crate::data::DatabaseType;
 
 #[derive(Clone, Debug, Default, Deserialize)]
 pub struct Config
@@ -7,10 +8,36 @@ pub struct Config
 	pub network: ConfigNetwork,
 }
 
+impl Config
+{
+	#[cfg(test)]
+	pub fn getTestConfig() -> Self
+	{
+		return Self
+		{
+			database: ConfigDatabase
+			{
+				databaseType: DatabaseType::Memory,
+				name: "vtt".into(),
+				namespace: "vtt".into(),
+				path: "data".into(),
+			},
+			network: ConfigNetwork
+			{
+				ip: "127.0.0.1".into(),
+				port: 8080,
+			}
+		};
+	}
+}
+
 #[derive(Clone, Debug, Default, Deserialize)]
 pub struct ConfigDatabase
 {
-	pub connectionString: String,
+	pub databaseType: DatabaseType,
+	pub name: String,
+	pub namespace: String,
+	pub path: String,
 }
 
 #[derive(Clone, Debug, Default, Deserialize)]

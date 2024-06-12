@@ -21,6 +21,7 @@ unsafe impl Send for MessageQueue {}
 
 impl MessageQueue
 {
+	#[allow(dead_code)]
 	pub fn isEmpty(&self) -> bool
 	{
 		return self.queue.borrow().is_empty();
@@ -81,6 +82,7 @@ impl MessageQueue
 	
 	Ensures that the given `id` has an associated message list in the queue.
 	*/
+	#[allow(dead_code)]
 	pub fn registerId(&self, id: i64)
 	{
 		let mut q = self.queue.borrow_mut();
