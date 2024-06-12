@@ -1,8 +1,9 @@
-#![allow(dead_code)]
-
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::sync::{Mutex, OnceLock};
+use ::anyhow::Result;
+use super::enums::Commands;
+use super::payload::Command;
 
 pub fn getMessageQueue() -> &'static Mutex<MessageQueue>
 {
@@ -13,7 +14,7 @@ pub fn getMessageQueue() -> &'static Mutex<MessageQueue>
 #[derive(Clone, Default)]
 pub struct MessageQueue
 {
-	queue: RefCell<HashMap<i64, Vec<String>>>,
+	queue: RefCell<HashMap<i64, Vec<Command>>>,
 }
 
 unsafe impl Send for MessageQueue {}
@@ -28,31 +29,29 @@ impl MessageQueue
 	/**
 	Queue a new message for transmission to every registered client.
 	*/
-	pub fn queueBroadcast(&self, message: String)
+	pub fn queueBroadcast(&self, message: String) -> Result<()>
 	{
-		for (_, list) in self.queue.borrow_mut().iter_mut()
-		{
-			list.push(message.to_owned());
-		}
+		let mut datamap = HashMap::<String, String>::default();
+		datamap.insert("text".into(), message);
+		return self.queueCommand(-1, Commands::BroadcastReceive, Some(datamap));
 	}
 	
-	/**
-	Queue a new message for transmission to a given `id`.
-	*/
-	pub fn queueMessage(&self, id: i64, message: String)
+	pub fn queueCommand(&self, id: i64, command: Commands, data: Option<HashMap<String, String>>) -> Result<()>
 	{
-		let mut q = self.queue.borrow_mut();
-		
-		//Just in case
-		if !q.contains_key(&id)
+		let datamap = match data
 		{
-			q.insert(id, vec![]);
-		}
+			None => HashMap::default(),
+			Some(map) => map,
+		};
 		
-		if let Some(map) = q.get_mut(&id)
+		self.queueMessage(Command
 		{
-			map.push(message);
-		}
+			Id: id,
+			Type: command,
+			Data: datamap
+		});
+		
+		return Ok(());
 	}
 	
 	/**
@@ -60,7 +59,7 @@ impl MessageQueue
 	
 	This method removes the messages from the queue before returning the list.
 	*/
-	pub fn readMessages(&self, id: i64) -> Vec<String>
+	pub fn readMessages(&self, id: i64) -> Vec<Command>
 	{
 		let mut messages = vec![];
 		
@@ -94,7 +93,7 @@ impl MessageQueue
 	/**
 	Remove the message list from the queue for a given `id`.
 	*/
-	pub fn removeId(&self, id: i64) -> Vec<String>
+	pub fn removeId(&self, id: i64) -> Vec<Command>
 	{
 		let mut q = self.queue.borrow_mut();
 		
@@ -104,5 +103,24 @@ impl MessageQueue
 			output = list;
 		}
 		return output;
+	}
+	
+	/**
+	Queue a new message for transmission to a given `id`.
+	*/
+	fn queueMessage(&self, command: Command)
+	{
+		let mut q = self.queue.borrow_mut();
+		
+		//Just in case
+		if !q.contains_key(&command.Id)
+		{
+			q.insert(command.Id, vec![]);
+		}
+		
+		if let Some(map) = q.get_mut(&command.Id)
+		{
+			map.push(command);
+		}
 	}
 }

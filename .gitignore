@@ -4,4 +4,5 @@
 dist/
 target/
 server/config.toml
+*.old*
 *.log

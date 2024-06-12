@@ -1,24 +1,11 @@
-use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
+use ::serde::{Deserialize, Serialize};
+use super::enums::Commands;
 
-#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
-pub struct Broadcast
+#[derive(Clone, Debug, Default, Deserialize, PartialEq, Eq, Serialize)]
+pub struct Command
 {
-	pub id: i64,
-	pub text: String,
-}
-
-impl Broadcast
-{
-	pub const Name: &'static str = "Broadcast";
-}
-
-#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Eq, Serialize)]
-pub struct ClientIdentity
-{
-	pub id: i64,
-}
-
-impl ClientIdentity
-{
-	pub const Name: &'static str = "ClientIdentity";
+	pub Id: i64,
+	pub Type: Commands,
+	pub Data: HashMap<String, String>,
 }

@@ -1,7 +1,7 @@
 using Godot;
-using System;
 using Vtt.Network;
-using Vtt.Network.Payload;
+
+namespace Vtt;
 
 public partial class Ui : Node
 {
@@ -24,6 +24,11 @@ public partial class Ui : Node
 		
 		GetNode<Button>(NodePaths.Connect).Pressed += () => client.ConnectSocket();
 		GetNode<Button>(NodePaths.Disconnect).Pressed += () => client.DisconnectSocket();
-		GetNode<Button>(NodePaths.Message).Pressed += () => client.SendMessage(new Broadcast { id = client.ClientId, text = "I clicked the test button!" });
+		
+		GetNode<Button>(NodePaths.Message).Pressed += () => client.SendMessage(
+			client.ClientId,
+			Commands.BroadcastSend,
+			new() { { "text", "I clicked the test button!" } }
+		);
 	}
 }

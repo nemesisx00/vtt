@@ -5,7 +5,9 @@ use ::hyper::upgrade::Upgraded;
 use ::hyper_util::rt::TokioIo;
 use ::log::{info, error};
 use ::tokio_util::sync::CancellationToken;
-use super::payload::{Broadcast, ClientIdentity};
+
+use super::enums::Commands;
+use super::payload::Command;
 use super::queue::getMessageQueue;
 
 #[derive()]
@@ -33,8 +35,13 @@ impl WebSocketClient
 	{
 		if let Ok(queue) = getMessageQueue().lock()
 		{
-			queue.queueMessage(self.id, format!("Client {} is connected!", self.id));
+			println!("Client id: {}", self.id);
+			queue.queueBroadcast(format!("Client {} is connected!", self.id))?;
+			queue.queueCommand(self.id, Commands::AuthenticateRequest, None)?;
 		}
+		
+		//Send auth request before waiting for input
+		self.sendQueuedMessages().await?;
 		
 		loop
 		{
@@ -92,29 +99,30 @@ impl WebSocketClient
 	{
 		match std::str::from_utf8(frame.payload.as_ref())
 		{
-			Ok(s) => {
-				if let Some((typeName, json)) = s.split_once("{")
+			Ok(json) => {
+				let command: Command = serde_json::from_str(json)?;
+				match command.Type
 				{
-					let json = format!("{{{}", json);
-					match typeName
-					{
-						Broadcast::Name => {
-							let obj: Broadcast = serde_json::from_str(json.as_str())?;
-							if let Ok(queue) = getMessageQueue().try_lock()
-							{
-								queue.queueBroadcast(obj.text.to_owned());
-							}
-						},
-						
-						ClientIdentity::Name => {
-							let obj: ClientIdentity = serde_json::from_str(json.as_str())?;
-							
-							//TODO: Expand this to safely handle ID collisions; Probably will require actual authentication instead of the client just declaring an id
+					Commands::BroadcastSend => {
+						if let Ok(queue) = getMessageQueue().try_lock()
+						{
+							queue.queueBroadcast(command.Data["text"].to_owned())?;
+						}
+					},
+					
+					Commands::AuthenticateSend => {
+						println!("Authentication data received!");
+						if let Ok(queue) = getMessageQueue().try_lock()
+						{
+							queue.queueCommand(self.id, Commands::AuthenticateSuccess, None)?;
+						}
+						/*
+						//TODO: Expand this to safely handle ID collisions; Probably will require actual authentication instead of the client just declaring an id
 							//Update the id in the message queue as well
 							if let Ok(queue) = getMessageQueue().try_lock()
 							{
 								queue.removeId(self.id);
-								self.id = obj.id;
+								self.id = obj.Id;
 								queue.registerId(self.id);
 							}
 							
@@ -122,10 +130,10 @@ impl WebSocketClient
 							
 							let response = Frame::text(Payload::Owned(format!("Client ID set as {}", self.id).into_bytes()));
 							self.socket.write_frame(response).await?;
-						},
-						
-						_ => {},
-					};
+						*/
+					},
+					
+					_ => {},
 				}
 			},
 			
@@ -137,17 +145,18 @@ impl WebSocketClient
 	
 	async fn sendQueuedMessages(&mut self) -> Result<()>
 	{
-		let mut messages = vec![];
-		if let Ok(queue) = getMessageQueue().try_lock()
+		let messages = match getMessageQueue().try_lock()
 		{
-			messages = queue.readMessages(self.id);
-		}
+			Ok(queue) => queue.readMessages(self.id),
+			Err(_) => vec![],
+		};
 		
-		for message in messages
-		{
-			let frame = Frame::text(Payload::Owned(message.into_bytes()));
-			self.socket.write_frame(frame).await?;
-		}
+		let json = serde_json::to_string(&messages)?;
+		self.socket.write_frame(
+			Frame::text(
+				Payload::Owned(json.into_bytes())
+			)
+		).await?;
 		
 		return Ok(());
 	}
