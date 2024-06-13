@@ -11,5 +11,5 @@ pub struct User
 
 impl User
 {
-	pub const Name: &'static str = "user";
+	pub const ResourceName: &'static str = "user";
 }

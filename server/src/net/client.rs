@@ -6,17 +6,18 @@ use ::hyper::upgrade::Upgraded;
 use ::hyper_util::rt::TokioIo;
 use ::log::{info, error};
 use ::tokio_util::sync::CancellationToken;
-
+use crate::config::Config;
+use crate::data::{DataLayer, User};
 use crate::net::user::getUserManager;
-
 use super::enums::Commands;
 use super::payload::Command;
 use super::queue::getMessageQueue;
 
 pub struct WebSocketClient
 {
+	config: Config,
 	id: i64,
-	name: String,
+	user: Option<User>,
 	socket: FragmentCollector<TokioIo<Upgraded>>,
 }
 
@@ -24,13 +25,14 @@ unsafe impl Send for WebSocketClient {}
 
 impl WebSocketClient
 {
-	pub async fn fromUpgradeFut(future: UpgradeFut) -> Result<Self>
+	pub async fn fromUpgradeFut(future: UpgradeFut, config: Config) -> Result<Self>
 	{
 		let ws = future.await?;
 		return Ok(Self
 		{
+			config,
 			id: -1,
-			name: String::default(),
+			user: None,
 			socket: FragmentCollector::new(ws),
 		});
 	}
@@ -70,7 +72,14 @@ impl WebSocketClient
 		{
 			OpCode::Close => {
 				self.queueRemoveId();
-				info!("{} ({}) disconnected!", self.name, self.id);
+				
+				let name = match &self.user
+				{
+					None => String::default(),
+					Some(u) => u.name.to_owned(),
+				};
+				
+				info!("{} ({}) disconnected!", name, self.id);
 				return Ok(true);
 			},
 			
@@ -121,21 +130,36 @@ impl WebSocketClient
 			None => self.queueCommand(self.id, Commands::AuthenticateFail, None)?,
 			
 			Some(username) => {
-				self.name = username.to_owned();
+				//TODO: This only works because there is only ever one DataLayer instance at a time. Create a dedicated DataLayer instance that can be accessed from within these client tasks.
+				let dao = DataLayer::new(self.config.clone()).await?;
 				
-				// Look up username in the DAL
-				// If exists, pull User and update stuff
-				
-				if let Some(newId) = self.userGetClientId(&self.name)
+				self.user = match dao.userFind(username.clone()).await
 				{
-					self.id = newId;
-					
-					let mut data = HashMap::new();
-					data.insert("clientId".to_string(), self.id.to_string());
-					data.insert("username".to_string(), self.name.to_owned());
-					
-					self.queueCommand(self.id, Commands::AuthenticateSuccess, Some(data))?;
-					self.queueBroadcast(format!("{} ({}) connected!", self.name, self.id))?;
+					Err(_) => {
+						let mut content = HashMap::default();
+						content.insert("name".to_string(), username.to_owned());
+						dao.userCreate(Some(content)).await?
+					},
+					Ok(opt) => opt,
+				};
+				
+				if let Some(user) = &self.user
+				{
+					if let Some(newId) = self.userGetClientId(&user.id.id.to_string())
+					{
+						self.id = newId;
+						
+						let mut data = HashMap::new();
+						data.insert("clientId".to_string(), self.id.to_string());
+						data.insert("username".to_string(), user.name.to_owned());
+						
+						self.queueCommand(self.id, Commands::AuthenticateSuccess, Some(data))?;
+						self.queueBroadcast(format!("{} ({}) connected!", user.name, self.id))?;
+					}
+				}
+				else
+				{
+					self.queueCommand(self.id, Commands::AuthenticateFail, None)?;
 				}
 			}
 		}

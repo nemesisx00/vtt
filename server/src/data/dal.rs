@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-
 use ::anyhow::Result;
 use ::surrealdb::sql::Thing;
 use crate::config::Config;
@@ -7,6 +6,9 @@ use super::db::Database;
 use super::model::User;
 
 const SelectByIdTemplate: &'static str = "SELECT * FROM ";
+const SelectUserByNameTemplate: &'static str = "SELECT * FROM user WHERE name = $username";
+
+const ParameterUsername: &'static str = "username";
 
 pub struct DataLayer
 {
@@ -15,17 +17,17 @@ pub struct DataLayer
 
 impl DataLayer
 {
-	pub fn new(config: &Config) -> Self
+	pub async fn new(config: Config) -> Result<Self>
 	{
-		return Self
+		return Ok(Self
 		{
-			db: Database::from(config),
-		}
+			db: Database::from(config).await?,
+		});
 	}
 	
 	pub async fn userCreate(&self, content: Option<HashMap<String, String>>) -> Result<Option<User>>
 	{
-		let result: Vec<User> = self.db.create(User::Name.into(), content).await?;
+		let result: Vec<User> = self.db.create(User::ResourceName.into(), content).await?;
 		
 		let mut user = None;
 		if let Some(u) = result.first()
@@ -36,6 +38,16 @@ impl DataLayer
 		return Ok(user);
 	}
 	
+	pub async fn userFind(&self, username: String) -> Result<Option<User>>
+	{
+		let result = self.db.queryOneArgs(
+			SelectUserByNameTemplate.into(),
+			(ParameterUsername, username)
+		).await?;
+		
+		return Ok(result);
+	}
+	
 	pub async fn userGet(&self, id: Thing) -> Result<Option<User>>
 	{
 		let result = self.db.queryOne(format!("{}{}", SelectByIdTemplate, id)).await?;
@@ -44,13 +56,13 @@ impl DataLayer
 	
 	pub async fn userGetAll(&self) -> Result<Vec<User>>
 	{
-		let result = self.db.select(User::Name.into()).await?;
+		let result = self.db.select(User::ResourceName.into()).await?;
 		return Ok(result);
 	}
 	
 	pub async fn userUpdate(&self, user: User) -> Result<Option<User>>
 	{
-		let result = self.db.update((User::Name.into(), user.id.id.to_string()), user).await?;
+		let result = self.db.update((User::ResourceName.into(), user.id.id.to_string()), user).await?;
 		return Ok(result);
 	}
 }
@@ -65,10 +77,12 @@ mod tests
 	async fn createGetUpdateUser()
 	{
 		let config = Config::getTestConfig();
-		let dal = DataLayer::new(&config);
+		let dal = DataLayer::new(config).await.unwrap();
+		
+		let username = "nemesis".to_string();
 		
 		let mut content = HashMap::<String, String>::default();
-		content.insert("name".into(), "nemesis".into());
+		content.insert("name".into(), username.to_owned());
 		
 		let mut user = dal.userCreate(Some(content)).await.unwrap();
 		assert!(user.is_some());
@@ -87,5 +101,8 @@ mod tests
 		let users = dal.userGetAll().await.unwrap();
 		assert!(!users.is_empty());
 		assert!(users.first().is_some_and(|u| Some(u.clone()) == user));
+		
+		let found = dal.userFind(username.to_owned()).await.unwrap();
+		assert!(found.is_some_and(|u| u.name == username));
 	}
 }

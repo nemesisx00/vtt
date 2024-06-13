@@ -47,13 +47,13 @@ impl WebSocketServer
 					if let Ok((stream, _)) = result
 					{
 						info!("Client connected");
-						
+						let conf = self.config.clone();
 						tokio::spawn(async move {
 							let io = TokioIo::new(stream);
 							let connectionFuture = http1::Builder::new()
 								.serve_connection(io, service_fn(|request: Request<Incoming>| async {
 									let ct = cancelToken.clone();
-									return serverUpgrade(request, ct).await;
+									return serverUpgrade(request, ct, conf.clone()).await;
 								}))
 								.with_upgrades();
 							
@@ -72,20 +72,20 @@ impl WebSocketServer
 	}
 }
 
-async fn handleClient(future: UpgradeFut, token: CancellationToken) -> Result<()>
+async fn handleClient(future: UpgradeFut, token: CancellationToken, config: Config) -> Result<()>
 {
-	let mut client = WebSocketClient::fromUpgradeFut(future).await?;
+	let mut client = WebSocketClient::fromUpgradeFut(future, config).await?;
 	client.start(token).await?;
 	return Ok(());
 }
 
-async fn serverUpgrade(mut request: Request<Incoming>, token: CancellationToken) -> Result<Response<Empty<Bytes>>>
+async fn serverUpgrade(mut request: Request<Incoming>, token: CancellationToken, config: Config) -> Result<Response<Empty<Bytes>>>
 {
 	let (response, future) = upgrade(&mut request)?;
 	
 	let cancelToken = token.clone();
 	tokio::task::spawn(async move {
-		if let Err(e) = tokio::task::unconstrained(handleClient(future, cancelToken)).await
+		if let Err(e) = tokio::task::unconstrained(handleClient(future, cancelToken, config)).await
 		{
 			error!("Error in websocket connection: {}", e);
 		}
