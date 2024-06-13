@@ -2,6 +2,7 @@ using Godot;
 using System.Collections.Generic;
 using System.Text;
 using System.Text.Json;
+using System.Globalization;
 using Vtt.Network.Payload;
 
 namespace Vtt.Network;
@@ -81,12 +82,7 @@ public partial class VttClient : Node
 					}
 					
 					if(data.Count > 0)
-					{
-						var text = Encoding.UTF8.GetString(data.ToArray());
-						GD.Print(text);
-						
-						parseCommand(text);
-					}
+						parseCommand(Encoding.UTF8.GetString(data.ToArray()));
 					break;
 				
 				case WebSocketPeer.State.Closing:
@@ -109,32 +105,28 @@ public partial class VttClient : Node
 		
 		foreach(var command in list)
 		{
-			if(command?.Id == ClientId)
+			switch(command.Type)
 			{
-				switch(command.Type)
-				{
-					case Commands.AuthenticateRequest:
-						GD.Print("Authentication requested by server!");
-						SendMessage(new Command
-						{
-							Id = ClientId,
-							Type = Commands.AuthenticateSend,
-							Data = [],
-						});
-						break;
-					
-					case Commands.AuthenticateFail:
-						GD.Print("Authentication failed!");
-						break;
-					
-					case Commands.AuthenticateSuccess:
-						GD.Print("Authentication succeeded!");
-						break;
-					
-					case Commands.BroadcastReceive:
-						GD.Print("Broadcast: ", command.Data["text"]);
-						break;
-				}
+				case Commands.AuthenticateRequest:
+					GD.Print("Authentication requested by server!");
+					break;
+				
+				case Commands.AuthenticateFail:
+					GD.Print("Authentication failed!");
+					break;
+				
+				case Commands.AuthenticateSuccess:
+					GD.Print("Authentication succeeded!");
+					if(long.TryParse(command.Data["clientId"], out long newId))
+					{
+						ClientId = newId;
+						GD.Print("Current Client ID: ", ClientId);
+					}
+					break;
+				
+				case Commands.BroadcastReceive:
+					GD.Print("Broadcast: ", command.Data["text"]);
+					break;
 			}
 		}
 	}

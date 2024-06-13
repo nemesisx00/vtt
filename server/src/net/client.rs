@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use ::anyhow::Result;
 use ::fastwebsockets::{FragmentCollector, Frame, Payload, OpCode};
 use ::fastwebsockets::upgrade::UpgradeFut;
@@ -6,14 +7,16 @@ use ::hyper_util::rt::TokioIo;
 use ::log::{info, error};
 use ::tokio_util::sync::CancellationToken;
 
+use crate::net::user::getUserManager;
+
 use super::enums::Commands;
 use super::payload::Command;
 use super::queue::getMessageQueue;
 
-#[derive()]
 pub struct WebSocketClient
 {
 	id: i64,
+	name: String,
 	socket: FragmentCollector<TokioIo<Upgraded>>,
 }
 
@@ -27,19 +30,14 @@ impl WebSocketClient
 		return Ok(Self
 		{
 			id: -1,
+			name: String::default(),
 			socket: FragmentCollector::new(ws),
-		})
+		});
 	}
 	
 	pub async fn start(&mut self, token: CancellationToken) -> Result<()>
 	{
-		if let Ok(queue) = getMessageQueue().lock()
-		{
-			println!("Client id: {}", self.id);
-			queue.queueBroadcast(format!("Client {} is connected!", self.id))?;
-			queue.queueCommand(self.id, Commands::AuthenticateRequest, None)?;
-		}
-		
+		self.queueCommand(self.id, Commands::AuthenticateRequest, None)?;
 		//Send auth request before waiting for input
 		self.sendQueuedMessages().await?;
 		
@@ -47,7 +45,7 @@ impl WebSocketClient
 		{
 			tokio::select! {
 				_ = token.cancelled() => {
-					info!("Graceful shutdown - Client loop ending");
+					info!("Graceful shutdown - Client {} loop ending", self.id);
 					break;
 				},
 				
@@ -71,11 +69,8 @@ impl WebSocketClient
 		match frame.opcode
 		{
 			OpCode::Close => {
-				if let Ok(messager) = getMessageQueue().lock()
-				{
-					let _ = messager.removeId(self.id);
-				}
-				info!("Client disconnected!");
+				self.queueRemoveId();
+				info!("{} ({}) disconnected!", self.name, self.id);
 				return Ok(true);
 			},
 			
@@ -103,36 +98,8 @@ impl WebSocketClient
 				let command: Command = serde_json::from_str(json)?;
 				match command.Type
 				{
-					Commands::BroadcastSend => {
-						if let Ok(queue) = getMessageQueue().try_lock()
-						{
-							queue.queueBroadcast(command.Data["text"].to_owned())?;
-						}
-					},
-					
-					Commands::AuthenticateSend => {
-						println!("Authentication data received!");
-						if let Ok(queue) = getMessageQueue().try_lock()
-						{
-							queue.queueCommand(self.id, Commands::AuthenticateSuccess, None)?;
-						}
-						/*
-						//TODO: Expand this to safely handle ID collisions; Probably will require actual authentication instead of the client just declaring an id
-							//Update the id in the message queue as well
-							if let Ok(queue) = getMessageQueue().try_lock()
-							{
-								queue.removeId(self.id);
-								self.id = obj.Id;
-								queue.registerId(self.id);
-							}
-							
-							info!("Client id {}", self.id);
-							
-							let response = Frame::text(Payload::Owned(format!("Client ID set as {}", self.id).into_bytes()));
-							self.socket.write_frame(response).await?;
-						*/
-					},
-					
+					Commands::BroadcastSend => self.handleBroadcastSend(command)?,
+					Commands::AuthenticateSend => self.handleAuthenticateSend(command).await?,
 					_ => {},
 				}
 			},
@@ -141,6 +108,77 @@ impl WebSocketClient
 		}
 		
 		return Ok(());
+	}
+	
+	// -----
+	
+	async fn handleAuthenticateSend(&mut self, command: Command) -> Result<()>
+	{
+		println!("Authentication data received!");
+		
+		match command.Data.get("name")
+		{
+			None => self.queueCommand(self.id, Commands::AuthenticateFail, None)?,
+			
+			Some(username) => {
+				self.name = username.to_owned();
+				
+				// Look up username in the DAL
+				// If exists, pull User and update stuff
+				
+				if let Some(newId) = self.userGetClientId(&self.name)
+				{
+					self.id = newId;
+					
+					let mut data = HashMap::new();
+					data.insert("clientId".to_string(), self.id.to_string());
+					data.insert("username".to_string(), self.name.to_owned());
+					
+					self.queueCommand(self.id, Commands::AuthenticateSuccess, Some(data))?;
+					self.queueBroadcast(format!("{} ({}) connected!", self.name, self.id))?;
+				}
+			}
+		}
+		
+		return Ok(());
+	}
+	
+	fn handleBroadcastSend(&mut self, command: Command) -> Result<()>
+	{
+		//TODO: Implement input sanitation
+		self.queueBroadcast(command.Data["text"].to_owned())?;
+		
+		return Ok(());
+	}
+	
+	// -----
+	
+	fn queueBroadcast(&self, text: String) -> Result<()>
+	{
+		if let Ok(queue) = getMessageQueue().try_lock()
+		{
+			queue.queueBroadcast(text)?;
+		}
+		
+		return Ok(());
+	}
+	
+	fn queueCommand(&self, id: i64, command: Commands, data: Option<HashMap<String, String>>) -> Result<()>
+	{
+		if let Ok(queue) = getMessageQueue().try_lock()
+		{
+			queue.queueCommand(id, command, data)?;
+		}
+		
+		return Ok(());
+	}
+	
+	fn queueRemoveId(&self)
+	{
+		if let Ok(messager) = getMessageQueue().lock()
+		{
+			let _ = messager.removeId(self.id);
+		}
 	}
 	
 	async fn sendQueuedMessages(&mut self) -> Result<()>
@@ -159,5 +197,16 @@ impl WebSocketClient
 		).await?;
 		
 		return Ok(());
+	}
+	
+	fn userGetClientId(&self, userId: &String) -> Option<i64>
+	{
+		let mut clientId = None;
+		if let Ok(userManager) = getUserManager().lock()
+		{
+			clientId = userManager.getClientId(userId);
+		}
+		
+		return clientId;
 	}
 }

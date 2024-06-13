@@ -20,12 +20,18 @@ layout_mode = 2
 
 [node name="HBoxContainer" type="HBoxContainer" parent="VBoxContainer"]
 layout_mode = 2
+theme_override_constants/separation = 10
 alignment = 1
 
 [node name="Connect" type="Button" parent="VBoxContainer/HBoxContainer"]
 unique_name_in_owner = true
 layout_mode = 2
 text = "Connect"
+
+[node name="Login" type="Button" parent="VBoxContainer/HBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Log In"
 
 [node name="Message" type="Button" parent="VBoxContainer/HBoxContainer"]
 unique_name_in_owner = true
@@ -49,9 +55,27 @@ vertical_alignment = 1
 
 [node name="HBoxContainer3" type="HBoxContainer" parent="VBoxContainer"]
 layout_mode = 2
+
+[node name="HBoxContainer" type="HBoxContainer" parent="VBoxContainer/HBoxContainer3"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 10
+alignment = 1
+
+[node name="Label" type="Label" parent="VBoxContainer/HBoxContainer3/HBoxContainer"]
+layout_mode = 2
+text = "Username:"
+
+[node name="Username" type="TextEdit" parent="VBoxContainer/HBoxContainer3/HBoxContainer"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(200, 0)
+layout_mode = 2
+
+[node name="HBoxContainer4" type="HBoxContainer" parent="VBoxContainer"]
+layout_mode = 2
 size_flags_vertical = 3
 
-[node name="Output" type="RichTextLabel" parent="VBoxContainer/HBoxContainer3"]
+[node name="Output" type="RichTextLabel" parent="VBoxContainer/HBoxContainer4"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
