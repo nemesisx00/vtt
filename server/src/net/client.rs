@@ -6,8 +6,7 @@ use ::hyper::upgrade::Upgraded;
 use ::hyper_util::rt::TokioIo;
 use ::log::{info, error};
 use ::tokio_util::sync::CancellationToken;
-use crate::config::Config;
-use crate::data::{DataLayer, User};
+use crate::data::{getDao, User};
 use crate::net::user::getUserManager;
 use super::enums::Commands;
 use super::payload::Command;
@@ -15,7 +14,6 @@ use super::queue::getMessageQueue;
 
 pub struct WebSocketClient
 {
-	config: Config,
 	id: i64,
 	user: Option<User>,
 	socket: FragmentCollector<TokioIo<Upgraded>>,
@@ -25,12 +23,11 @@ unsafe impl Send for WebSocketClient {}
 
 impl WebSocketClient
 {
-	pub async fn fromUpgradeFut(future: UpgradeFut, config: Config) -> Result<Self>
+	pub async fn fromUpgradeFut(future: UpgradeFut) -> Result<Self>
 	{
 		let ws = future.await?;
 		return Ok(Self
 		{
-			config,
 			id: -1,
 			user: None,
 			socket: FragmentCollector::new(ws),
@@ -130,18 +127,26 @@ impl WebSocketClient
 			None => self.queueCommand(self.id, Commands::AuthenticateFail, None)?,
 			
 			Some(username) => {
-				//TODO: This only works because there is only ever one DataLayer instance at a time. Create a dedicated DataLayer instance that can be accessed from within these client tasks.
-				let dao = DataLayer::new(self.config.clone()).await?;
-				
-				self.user = match dao.userFind(username.clone()).await
 				{
-					Err(_) => {
-						let mut content = HashMap::default();
-						content.insert("name".to_string(), username.to_owned());
-						dao.userCreate(Some(content)).await?
-					},
-					Ok(opt) => opt,
-				};
+					let dao = getDao().lock().await;
+					
+					self.user = match dao.userFind(username.clone()).await
+					{
+						Err(e) => {
+							error!("Error searching the db for username '{}': {:?}", username, e);
+							None
+						},
+						Ok(opt) => match opt
+						{
+							None => {
+								let mut content = HashMap::default();
+								content.insert("name".to_string(), username.to_owned());
+								dao.userCreate(Some(content)).await?
+							},
+							Some(u) => Some(u),
+						},
+					};
+				}
 				
 				if let Some(user) = &self.user
 				{

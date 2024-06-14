@@ -1,10 +1,19 @@
 use std::collections::HashMap;
+use std::sync::OnceLock;
 use ::anyhow::Result;
 use ::surrealdb::sql::Thing;
+use ::tokio::sync::Mutex;
 use crate::config::Config;
 use super::db::Database;
 use super::model::User;
 
+pub fn getDao() -> &'static Mutex<DataLayer>
+{
+	static DaoLock: OnceLock<Mutex<DataLayer>> = OnceLock::new();
+	return DaoLock.get_or_init(|| Mutex::new(DataLayer::default()));
+}
+
+#[allow(dead_code)]
 const SelectByIdTemplate: &'static str = "SELECT * FROM ";
 const SelectUserByNameTemplate: &'static str = "SELECT * FROM user WHERE name = $username";
 
@@ -15,14 +24,20 @@ pub struct DataLayer
 	db: Database,
 }
 
+impl Default for DataLayer
+{
+	fn default() -> Self
+	{
+		return Self { db: Database::default() };
+	}
+}
+
 impl DataLayer
 {
-	pub async fn new(config: Config) -> Result<Self>
+	pub async fn initialize(&mut self, config: Config) -> Result<()>
 	{
-		return Ok(Self
-		{
-			db: Database::from(config).await?,
-		});
+		self.db.initialize(config.database).await?;
+		return Ok(());
 	}
 	
 	pub async fn userCreate(&self, content: Option<HashMap<String, String>>) -> Result<Option<User>>
@@ -48,18 +63,21 @@ impl DataLayer
 		return Ok(result);
 	}
 	
+	#[allow(dead_code)]
 	pub async fn userGet(&self, id: Thing) -> Result<Option<User>>
 	{
 		let result = self.db.queryOne(format!("{}{}", SelectByIdTemplate, id)).await?;
 		return Ok(result);
 	}
 	
+	#[allow(dead_code)]
 	pub async fn userGetAll(&self) -> Result<Vec<User>>
 	{
 		let result = self.db.select(User::ResourceName.into()).await?;
 		return Ok(result);
 	}
 	
+	#[allow(dead_code)]
 	pub async fn userUpdate(&self, user: User) -> Result<Option<User>>
 	{
 		let result = self.db.update((User::ResourceName.into(), user.id.id.to_string()), user).await?;
@@ -77,32 +95,33 @@ mod tests
 	async fn createGetUpdateUser()
 	{
 		let config = Config::getTestConfig();
-		let dal = DataLayer::new(config).await.unwrap();
+		let mut dao = DataLayer::default();
+		dao.initialize(config).await.unwrap();
 		
 		let username = "nemesis".to_string();
 		
 		let mut content = HashMap::<String, String>::default();
 		content.insert("name".into(), username.to_owned());
 		
-		let mut user = dal.userCreate(Some(content)).await.unwrap();
+		let mut user = dao.userCreate(Some(content)).await.unwrap();
 		assert!(user.is_some());
 		
 		if let Some(u) = user.as_mut()
 		{
-			let got = dal.userGet(u.id.clone()).await.unwrap();
+			let got = dao.userGet(u.id.clone()).await.unwrap();
 			assert!(got.is_some_and(|g| &g == u && g.label.is_none()));
 			
 			u.label = Some("Nemesis".into());
 			
-			let updated = dal.userUpdate(u.clone()).await.unwrap();
+			let updated = dao.userUpdate(u.clone()).await.unwrap();
 			assert!(updated.is_some_and(|up| up.name == u.name && up.label.is_some()));
 		}
 		
-		let users = dal.userGetAll().await.unwrap();
+		let users = dao.userGetAll().await.unwrap();
 		assert!(!users.is_empty());
 		assert!(users.first().is_some_and(|u| Some(u.clone()) == user));
 		
-		let found = dal.userFind(username.to_owned()).await.unwrap();
+		let found = dao.userFind(username.to_owned()).await.unwrap();
 		assert!(found.is_some_and(|u| u.name == username));
 	}
 }
