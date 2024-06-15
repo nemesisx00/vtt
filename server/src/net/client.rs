@@ -77,6 +77,8 @@ impl WebSocketClient
 				};
 				
 				info!("{} ({}) disconnected!", name, self.id);
+				self.queueBroadcast(format!("{} ({}) disconnected!", name, self.id))?;
+				
 				return Ok(true);
 			},
 			
@@ -174,8 +176,11 @@ impl WebSocketClient
 	
 	fn handleBroadcastSend(&mut self, command: Command) -> Result<()>
 	{
-		//TODO: Implement input sanitation
-		self.queueBroadcast(command.Data["text"].to_owned())?;
+		if let Some(text) = command.Data.get("text")
+		{
+			//TODO: Implement input sanitation
+			self.queueBroadcast(text.to_owned())?;
+		}
 		
 		return Ok(());
 	}
@@ -184,7 +189,7 @@ impl WebSocketClient
 	
 	fn queueBroadcast(&self, text: String) -> Result<()>
 	{
-		if let Ok(queue) = getMessageQueue().try_lock()
+		if let Ok(queue) = getMessageQueue().lock()
 		{
 			queue.queueBroadcast(text)?;
 		}
@@ -194,7 +199,7 @@ impl WebSocketClient
 	
 	fn queueCommand(&self, id: i64, command: Commands, data: Option<HashMap<String, String>>) -> Result<()>
 	{
-		if let Ok(queue) = getMessageQueue().try_lock()
+		if let Ok(queue) = getMessageQueue().lock()
 		{
 			queue.queueCommand(id, command, data)?;
 		}
@@ -212,7 +217,7 @@ impl WebSocketClient
 	
 	async fn sendQueuedMessages(&mut self) -> Result<()>
 	{
-		let messages = match getMessageQueue().try_lock()
+		let messages = match getMessageQueue().lock()
 		{
 			Ok(queue) => queue.readMessages(self.id),
 			Err(_) => vec![],

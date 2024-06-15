@@ -34,7 +34,21 @@ impl MessageQueue
 	{
 		let mut datamap = HashMap::<String, String>::default();
 		datamap.insert("text".into(), message);
-		return self.queueCommand(-1, Commands::BroadcastReceive, Some(datamap));
+		
+		let mut keys = vec![];
+		{
+			for id in self.queue.borrow().keys()
+			{
+				keys.push(id.clone());
+			}
+		}
+		
+		for id in keys
+		{
+			self.queueCommand(id, Commands::BroadcastReceive, Some(datamap.clone()))?;
+		}
+		
+		return Ok(());
 	}
 	
 	pub fn queueCommand(&self, id: i64, command: Commands, data: Option<HashMap<String, String>>) -> Result<()>

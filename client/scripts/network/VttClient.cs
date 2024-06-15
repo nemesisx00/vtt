@@ -1,8 +1,8 @@
 using Godot;
 using System.Collections.Generic;
+using System.Net;
 using System.Text;
 using System.Text.Json;
-using System.Globalization;
 using Vtt.Network.Payload;
 
 namespace Vtt.Network;
@@ -11,11 +11,14 @@ public partial class VttClient : Node
 {
 	[Signal]
 	public delegate void SocketConnectedEventHandler();
+	[Signal]
+	public delegate void LoginResponseEventHandler(bool success);
+	[Signal]
+	public delegate void DisplayMessageEventHandler(string text);
 	
-	[Export]
-	public long ClientId { get; set; }
+	public ClientStatus Status => status;
 	
-	private bool connected = false;
+	private ClientStatus status;
 	private WebSocketPeer socket = new();
 	
 	public override void _Notification(int what)
@@ -28,28 +31,23 @@ public partial class VttClient : Node
 		}
 	}
 	
-	public override void _Process(double delta)
-	{
-		pollSocket();
-	}
+	public override void _Process(double delta) => pollSocket();
+	public override void _Ready() => status.id = Multiplayer.GetUniqueId();
 	
-	public override void _Ready()
+	public void ConnectSocket(IPEndPoint ip)
 	{
-		ClientId = Multiplayer.GetUniqueId();
-	}
-	
-	public void ConnectSocket()
-	{
-		if(!connected)
+		if(!status.connected)
 		{
-			var error = socket.ConnectToUrl("ws://127.0.0.1:7890");
-			connected = Error.Ok == error;
+			var error = socket.ConnectToUrl($"ws://{ip}");
+			status.connected = Error.Ok == error;
+			if(status.connected)
+				EmitSignal(SignalName.SocketConnected);
 		}
 	}
 	
 	public void DisconnectSocket()
 	{
-		if(connected)
+		if(status.connected)
 			socket.Close();
 	}
 	
@@ -60,13 +58,13 @@ public partial class VttClient : Node
 	
 	public void SendMessage(Command message)
 	{
-		if(connected)
+		if(status.connected)
 			socket.SendText(JsonSerializer.Serialize(message));
 	}
 	
 	private void pollSocket()
 	{
-		if(connected)
+		if(status.connected)
 		{
 			socket.Poll();
 			switch(socket.GetReadyState())
@@ -85,15 +83,9 @@ public partial class VttClient : Node
 						parseCommand(Encoding.UTF8.GetString(data.ToArray()));
 					break;
 				
-				case WebSocketPeer.State.Closing:
-					break;
-				
 				case WebSocketPeer.State.Closed:
 					GD.Print(string.Format("Socket closed: {0} - {1}", socket.GetCloseCode(), socket.GetCloseReason()));
-					connected = false;
-					break;
-				
-				case WebSocketPeer.State.Connecting:
+					status.Disconnect();
 					break;
 			}
 		}
@@ -113,19 +105,23 @@ public partial class VttClient : Node
 				
 				case Commands.AuthenticateFail:
 					GD.Print("Authentication failed!");
+					EmitSignal(SignalName.LoginResponse, false);
 					break;
 				
 				case Commands.AuthenticateSuccess:
 					GD.Print("Authentication succeeded!");
 					if(long.TryParse(command.Data["clientId"], out long newId))
 					{
-						ClientId = newId;
-						GD.Print("Current Client ID: ", ClientId);
+						status.id = newId;
+						GD.Print("Current Client ID: ", status.id);
 					}
+					status.loggedIn = true;
+					EmitSignal(SignalName.LoginResponse, true);
 					break;
 				
 				case Commands.BroadcastReceive:
 					GD.Print("Broadcast: ", command.Data["text"]);
+					EmitSignal(SignalName.DisplayMessage, command.Data["text"]);
 					break;
 			}
 		}
