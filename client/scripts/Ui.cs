@@ -90,17 +90,9 @@ public partial class Ui : Node
 			{
 				var address = IPAddress.Parse(ip);
 				var endpoint = new IPEndPoint(address, port);
-				GD.Print("endpoint: ", endpoint.ToString());
 				client.ConnectSocket(endpoint);
 			}
-			catch(FormatException fe)
-			{
-				GD.Print("FormatException: ", fe.ToString());
-			}
-			catch(Exception e)
-			{
-				GD.Print("Exception: ", e.ToString());
-			}
+			catch (Exception) {}
 		}
 	}
 	
@@ -113,7 +105,7 @@ public partial class Ui : Node
 		
 		clientId.Text = string.Empty;
 		username.Text = string.Empty;
-		output.Clear();
+		output.Text = string.Empty;
 	}
 	
 	private void handleDisplayMessage(string text)
