@@ -40,6 +40,7 @@ public partial class VttClient : Node
 		{
 			var error = socket.ConnectToUrl($"ws://{ip}");
 			status.connected = Error.Ok == error;
+			
 			if(status.connected)
 				EmitSignal(SignalName.SocketConnected);
 		}
@@ -99,28 +100,18 @@ public partial class VttClient : Node
 		{
 			switch(command.Type)
 			{
-				case Commands.AuthenticateRequest:
-					GD.Print("Authentication requested by server!");
-					break;
-				
 				case Commands.AuthenticateFail:
-					GD.Print("Authentication failed!");
 					EmitSignal(SignalName.LoginResponse, false);
 					break;
 				
 				case Commands.AuthenticateSuccess:
-					GD.Print("Authentication succeeded!");
 					if(long.TryParse(command.Data["clientId"], out long newId))
-					{
 						status.id = newId;
-						GD.Print("Current Client ID: ", status.id);
-					}
 					status.loggedIn = true;
 					EmitSignal(SignalName.LoginResponse, true);
 					break;
 				
 				case Commands.BroadcastReceive:
-					GD.Print("Broadcast: ", command.Data["text"]);
 					EmitSignal(SignalName.DisplayMessage, command.Data["text"]);
 					break;
 			}

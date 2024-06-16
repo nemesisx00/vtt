@@ -85,18 +85,12 @@ text = "Log In"
 
 [node name="ConnectedUI" type="VBoxContainer" parent="."]
 unique_name_in_owner = true
-visible = false
 layout_mode = 2
 
 [node name="HBoxContainer" type="HBoxContainer" parent="ConnectedUI"]
 layout_mode = 2
 theme_override_constants/separation = 10
 alignment = 1
-
-[node name="Message" type="Button" parent="ConnectedUI/HBoxContainer"]
-unique_name_in_owner = true
-layout_mode = 2
-text = "Send Message"
 
 [node name="Disconnect" type="Button" parent="ConnectedUI/HBoxContainer"]
 unique_name_in_owner = true
@@ -133,6 +127,22 @@ text = "Username:"
 [node name="Username" type="Label" parent="ConnectedUI/HBoxContainer2/HBoxContainer2"]
 unique_name_in_owner = true
 layout_mode = 2
+
+[node name="HBoxContainer3" type="HBoxContainer" parent="ConnectedUI"]
+layout_mode = 2
+theme_override_constants/separation = 15
+alignment = 1
+
+[node name="MessageText" type="TextEdit" parent="ConnectedUI/HBoxContainer3"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 35)
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Message" type="Button" parent="ConnectedUI/HBoxContainer3"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Send Message"
 
 [node name="HBoxContainer4" type="HBoxContainer" parent="ConnectedUI"]
 layout_mode = 2

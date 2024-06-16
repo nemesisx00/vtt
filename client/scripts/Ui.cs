@@ -19,6 +19,7 @@ public partial class Ui : Node
 		public static readonly NodePath Login = new("%Login");
 		public static readonly NodePath LoginUi = new("%LoginUI");
 		public static readonly NodePath Message = new("%Message");
+		public static readonly NodePath MessageText = new("%MessageText");
 		public static readonly NodePath Output = new("%Output");
 		public static readonly NodePath Username = new("%Username");
 		public static readonly NodePath UsernameInput = new("%UsernameInput");
@@ -33,6 +34,7 @@ public partial class Ui : Node
 	private VttClient client;
 	private Label clientId;
 	private TextEdit ipAddress;
+	private TextEdit messageText;
 	private RichTextLabel output;
 	private Label username;
 	private TextEdit usernameInput;
@@ -55,6 +57,7 @@ public partial class Ui : Node
 		client = GetNode<VttClient>(NodePaths.ClientNode);
 		clientId = GetNode<Label>(NodePaths.ClientId);
 		ipAddress = GetNode<TextEdit>(NodePaths.IpAddress);
+		messageText = GetNode<TextEdit>(NodePaths.MessageText);
 		output = GetNode<RichTextLabel>(NodePaths.Output);
 		username = GetNode<Label>(NodePaths.Username);
 		usernameInput = GetNode<TextEdit>(NodePaths.UsernameInput);
@@ -146,11 +149,18 @@ public partial class Ui : Node
 	
 	private void handleMessageButton()
 	{
-		client.SendMessage(
-			client.Status.id,
-			Commands.BroadcastSend,
-			new() { { "text", "I clicked the test button!" } }
-		);
+		if(!string.IsNullOrEmpty(messageText.Text))
+		{
+			var text = messageText.Text;
+			//TODO: Sanitize input
+			messageText.Clear();
+			
+			client.SendMessage(
+				client.Status.id,
+				Commands.BroadcastSend,
+				new() { { "text", text } }
+			);
+		}
 	}
 	
 	private void handleSocketConnected()
