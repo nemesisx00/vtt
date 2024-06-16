@@ -63,6 +63,15 @@ impl WebSocketClient
 		return Ok(());
 	}
 	
+	fn username(&self) -> String
+	{
+		return match &self.user
+		{
+			Some(u) => u.name.to_owned(),
+			None => self.id.to_string(),
+		};
+	}
+	
 	async fn poll(&mut self, frame: Frame<'_>) -> Result<bool>
 	{
 		match frame.opcode
@@ -179,7 +188,7 @@ impl WebSocketClient
 		if let Some(text) = command.Data.get("text")
 		{
 			//TODO: Implement input sanitation
-			self.queueBroadcast(text.to_owned())?;
+			self.queueBroadcast(format!("{}: {}", self.username(), text))?;
 		}
 		
 		return Ok(());
