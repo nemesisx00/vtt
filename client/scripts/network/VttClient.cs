@@ -54,6 +54,10 @@ public partial class VttClient : Node
 	
 	public void SendMessage(long id, Commands type) => SendMessage(id, type, []);
 	
+	public void SendMessage<T>(long id, Commands type, T data)
+			where T: Serializable
+		=> SendMessage(id, type, data.Serialize());
+	
 	public void SendMessage(long id, Commands type, Dictionary<string, string> data)
 		=> SendMessage(new Command { Id = id, Type = type, Data = data, });
 	
@@ -105,14 +109,14 @@ public partial class VttClient : Node
 					break;
 				
 				case Commands.AuthenticateSuccess:
-					var ad = command.AuthenticationData();
+					var ad = command.ParseAuthenticationData();
 					status.id = ad.ClientId;
 					status.loggedIn = true;
 					EmitSignal(SignalName.LoginResponse, true);
 					break;
 				
 				case Commands.BroadcastReceive:
-					var bd = command.BroadcastData();
+					var bd = command.ParseBroadcastData();
 					EmitSignal(SignalName.DisplayMessage, bd.Text);
 					break;
 			}

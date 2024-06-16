@@ -2,6 +2,7 @@ using System;
 using System.Net;
 using Godot;
 using Vtt.Network;
+using Vtt.Network.Payload;
 
 namespace Vtt;
 
@@ -150,7 +151,7 @@ public partial class Ui : Node
 			client.SendMessage(
 				client.Status.id,
 				Commands.BroadcastSend,
-				new() { { "text", text } }
+				new BroadcastData(text)
 			);
 		}
 	}
