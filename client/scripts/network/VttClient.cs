@@ -105,14 +105,15 @@ public partial class VttClient : Node
 					break;
 				
 				case Commands.AuthenticateSuccess:
-					if(long.TryParse(command.Data["clientId"], out long newId))
-						status.id = newId;
+					var ad = command.AuthenticationData();
+					status.id = ad.ClientId;
 					status.loggedIn = true;
 					EmitSignal(SignalName.LoginResponse, true);
 					break;
 				
 				case Commands.BroadcastReceive:
-					EmitSignal(SignalName.DisplayMessage, command.Data["text"]);
+					var bd = command.BroadcastData();
+					EmitSignal(SignalName.DisplayMessage, bd.Text);
 					break;
 			}
 		}
