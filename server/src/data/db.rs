@@ -1,18 +1,23 @@
-use std::collections::HashMap;
 use std::path::PathBuf;
+use std::sync::OnceLock;
 use ::anyhow::Result;
-use ::serde::Serialize;
-use ::serde::de::DeserializeOwned;
 use ::surrealdb::Surreal;
 use ::surrealdb::engine::local::{Db, Mem, RocksDb};
+use ::tokio::sync::Mutex;
 use crate::config::{localDataPath, ConfigDatabase};
 use super::dbtype::DatabaseType;
+
+pub fn getDatabase() -> &'static Mutex<Database>
+{
+	static DbLock: OnceLock<Mutex<Database>> = OnceLock::new();
+	return DbLock.get_or_init(|| Mutex::new(Database::default()));
+}
 
 #[derive(Debug)]
 pub struct Database
 {
 	initialized: bool,
-	instance: Surreal<Db>,
+	pub instance: Surreal<Db>,
 }
 
 impl Default for Database
@@ -29,20 +34,6 @@ impl Default for Database
 
 impl Database
 {
-	pub async fn create<T>(&self, resource: String, content: Option<HashMap<String, String>>) -> Result<Vec<T>>
-		where T: Serialize + DeserializeOwned
-	{
-		let created = match content
-		{
-			None => self.instance.create(resource).await?,
-			Some(c) =>self.instance.create(resource)
-				.content(c)
-				.await?,
-		};
-		
-		return Ok(created);
-	}
-	
 	pub async fn initialize(&mut self, config: ConfigDatabase) -> Result<()>
 	{
 		if !self.initialized
@@ -75,58 +66,5 @@ impl Database
 		}
 		
 		return Ok(());
-	}
-	
-	#[allow(dead_code)]
-	pub async fn queryOne<T>(&self, query: String) -> Result<Option<T>>
-		where T: DeserializeOwned
-	{
-		let result = self.instance.query(query)
-			.await?
-			.take(0)?;
-		
-		return Ok(result)
-	}
-	
-	pub async fn queryOneArgs<T>(&self, query: String, bindings: impl Serialize) -> Result<Option<T>>
-		where T: DeserializeOwned
-	{
-		let result = self.instance.query(query)
-			.bind(bindings)
-			.await?
-			.take(0)?;
-		
-		return Ok(result);
-	}
-	
-	#[allow(dead_code)]
-	pub async fn queryAll<T>(&self, query: String) -> Result<Vec<T>>
-		where T: DeserializeOwned
-	{
-		let result = self.instance.query(query)
-			.await?
-			.take(0)?;
-		
-		return Ok(result)
-	}
-	
-	#[allow(dead_code)]
-	pub async fn select<T>(&self, resource: String) -> Result<Vec<T>>
-		where T: Serialize + DeserializeOwned
-	{
-		let result: Vec<T> = self.instance.select(resource).await?;
-		
-		return Ok(result);
-	}
-	
-	#[allow(dead_code)]
-	pub async fn update<T>(&self, resourceId: (String, String), record: T) -> Result<Option<T>>
-		where T: Serialize + DeserializeOwned
-	{
-		let result = self.instance.update(resourceId)
-			.content(record)
-			.await?;
-		
-		return Ok(result);
 	}
 }

@@ -1,12 +1,14 @@
 use std::collections::HashMap;
 use ::anyhow::Result;
+use chrono::{Duration, Utc};
 use ::fastwebsockets::{FragmentCollector, Frame, Payload, OpCode};
 use ::fastwebsockets::upgrade::UpgradeFut;
 use ::hyper::upgrade::Upgraded;
 use ::hyper_util::rt::TokioIo;
 use ::log::{info, error};
 use ::tokio_util::sync::CancellationToken;
-use crate::data::{getDao, User};
+use crate::data::dao;
+use crate::data::{Message, User};
 use crate::net::user::getUserManager;
 use super::enums::Commands;
 use super::payload::Command;
@@ -115,7 +117,7 @@ impl WebSocketClient
 				let command: Command = serde_json::from_str(json)?;
 				match command.Type
 				{
-					Commands::BroadcastSend => self.handleBroadcastSend(command)?,
+					Commands::BroadcastSend => self.handleBroadcastSend(command).await?,
 					Commands::AuthenticateSend => self.handleAuthenticateSend(command).await?,
 					_ => {},
 				}
@@ -139,9 +141,7 @@ impl WebSocketClient
 			
 			Some(username) => {
 				{
-					let dao = getDao().lock().await;
-					
-					self.user = match dao.userFind(username.clone()).await
+					self.user = match dao::userFind(username.clone()).await
 					{
 						Err(e) => {
 							error!("Error searching the db for username '{}': {:?}", username, e);
@@ -150,32 +150,53 @@ impl WebSocketClient
 						Ok(opt) => match opt
 						{
 							None => {
-								let mut content = HashMap::default();
-								content.insert("name".to_string(), username.to_owned());
-								dao.userCreate(Some(content)).await?
+								let content = User
+								{
+									name: username.to_owned(),
+									..Default::default()
+								};
+								dao::userCreate(Some(content)).await?
 							},
 							Some(u) => Some(u),
 						},
 					};
 				}
 				
-				if let Some(user) = &self.user
+				match &self.user
 				{
-					if let Some(newId) = self.userGetClientId(&user.id.id.to_string())
-					{
-						self.id = newId;
-						
-						let mut data = HashMap::new();
-						data.insert("clientId".to_string(), self.id.to_string());
-						data.insert("username".to_string(), user.name.to_owned());
-						
-						self.queueCommand(self.id, Commands::AuthenticateSuccess, Some(data))?;
-						self.queueBroadcast(format!("{} ({}) connected!", user.name, self.id))?;
-					}
-				}
-				else
-				{
-					self.queueCommand(self.id, Commands::AuthenticateFail, None)?;
+					Some(user) => {
+						match &user.id
+						{
+							Some(id) => {
+								if let Some(newId) = self.userGetClientId(&id.to_string())
+								{
+									self.id = newId;
+									
+									let start = (Utc::now() - Duration::days(1)).naive_utc();
+									let end = Utc::now().naive_utc();
+									let messages = dao::messageFindByDateRange(start, end).await?;
+									
+									for m in messages
+									{
+										let data: HashMap<String, String> = vec![
+											("text".to_string(), m.text.to_owned()),
+										].into_iter().collect();
+										self.queueCommand(self.id.to_owned(), Commands::BroadcastReceive, Some(data))?;
+									}
+									
+									let data: HashMap<String, String> = vec![
+										("clientId".to_string(), self.id.to_string()),
+										("username".to_string(), user.name.to_owned()),
+									].into_iter().collect();
+									
+									self.queueCommand(self.id, Commands::AuthenticateSuccess, Some(data))?;
+									self.queueBroadcast(format!("{} ({}) connected!", user.name, self.id))?;
+								}
+							},
+							None => self.queueCommand(self.id, Commands::AuthenticateFail, None)?,
+						}
+					},
+					None => self.queueCommand(self.id, Commands::AuthenticateFail, None)?,
 				}
 			}
 		}
@@ -183,12 +204,28 @@ impl WebSocketClient
 		return Ok(());
 	}
 	
-	fn handleBroadcastSend(&mut self, command: Command) -> Result<()>
+	async fn handleBroadcastSend(&mut self, command: Command) -> Result<()>
 	{
 		if let Some(text) = command.Data.get("text")
 		{
 			//TODO: Implement input sanitation
-			self.queueBroadcast(format!("{}: {}", self.username(), text))?;
+			if !text.is_empty()
+			{
+				if let Some(user) = &self.user
+				{
+					self.queueBroadcast(format!("{}: {}", self.username(), text))?;
+					
+					let content = Message
+					{
+						text: text.to_owned(),
+						timestamp: Utc::now().timestamp(),
+						userId: user.id.clone(),
+						..Default::default()
+					};
+					
+					_ = dao::messageCreate(Some(content)).await?;
+				}
+			}
 		}
 		
 		return Ok(());

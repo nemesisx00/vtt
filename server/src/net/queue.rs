@@ -2,6 +2,7 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::sync::{Mutex, OnceLock};
 use ::anyhow::Result;
+use ::chrono::{DateTime, Utc};
 use super::enums::Commands;
 use super::payload::Command;
 
@@ -32,8 +33,9 @@ impl MessageQueue
 	*/
 	pub fn queueBroadcast(&self, message: String) -> Result<()>
 	{
-		let mut datamap = HashMap::<String, String>::default();
-		datamap.insert("text".into(), message);
+		let data: HashMap<String, String> = vec![
+			("text".to_string(), message),
+		].into_iter().collect();
 		
 		let mut keys = vec![];
 		{
@@ -45,7 +47,7 @@ impl MessageQueue
 		
 		for id in keys
 		{
-			self.queueCommand(id, Commands::BroadcastReceive, Some(datamap.clone()))?;
+			self.queueCommand(id, Commands::BroadcastReceive, Some(data.clone()))?;
 		}
 		
 		return Ok(());
@@ -59,11 +61,14 @@ impl MessageQueue
 			Some(map) => map,
 		};
 		
+		let ts = DateTime::<Utc>::default();
+		
 		self.queueMessage(Command
 		{
+			Data: datamap,
 			Id: id,
+			Timestamp: ts.timestamp(),
 			Type: command,
-			Data: datamap
 		});
 		
 		return Ok(());

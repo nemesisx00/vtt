@@ -11,7 +11,7 @@ use ::tokio::signal;
 use ::tokio_util::task::TaskTracker;
 use ::tokio_util::sync::CancellationToken;
 use crate::config::{loadConfig, localDataPath};
-use crate::data::getDao;
+use crate::data::getDatabase;
 use crate::net::WebSocketServer;
 
 const LoggerLevel: &'static str = "info";
@@ -24,8 +24,8 @@ async fn main() -> Result<()>
 	let config = loadConfig()?;
 	
 	{
-		let mut dao = getDao().lock().await;
-		dao.initialize(config.clone()).await?;
+		let mut db = getDatabase().lock().await;
+		db.initialize(config.database.clone()).await?;
 	}
 	
 	let mut logPath = PathBuf::from(LoggerDefaultBaseDir);

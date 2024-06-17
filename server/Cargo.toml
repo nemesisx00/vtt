@@ -9,6 +9,7 @@ version = "0.1.0"
 
 [dependencies]
 anyhow = "1"
+chrono = "0"
 directories = "5"
 fastwebsockets = { version = "0", features = [ "upgrade" ] }
 flexi_logger = "0"
