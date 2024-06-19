@@ -16,20 +16,12 @@ public partial class VttClient : Node
 	[Signal]
 	public delegate void DisplayMessageEventHandler(string text);
 	
+	public static readonly NodePath NodePath = new("/root/VttClient");
+	
 	public ClientStatus Status => status;
 	
 	private ClientStatus status;
 	private WebSocketPeer socket = new();
-	
-	public override void _Notification(int what)
-	{
-		switch((long)what)
-		{
-			case NotificationWMCloseRequest:
-				DisconnectSocket();
-				break;
-		}
-	}
 	
 	public override void _Process(double delta) => pollSocket();
 	public override void _Ready() => status.id = Multiplayer.GetUniqueId();

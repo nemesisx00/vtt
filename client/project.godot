@@ -15,6 +15,11 @@ run/main_scene="res://MPTest.tscn"
 config/features=PackedStringArray("4.2", "C#", "Forward Plus")
 config/icon="res://icon.svg"
 
+[autoload]
+
+AppState="*res://scripts/AppState.cs"
+VttClient="*res://scripts/network/VttClient.cs"
+
 [display]
 
 window/size/viewport_width=1280
