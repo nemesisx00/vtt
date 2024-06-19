@@ -39,7 +39,6 @@ impl WebSocketClient
 	pub async fn start(&mut self, token: CancellationToken) -> Result<()>
 	{
 		self.queueCommand(self.id, Commands::AuthenticateRequest, None)?;
-		//Send auth request before waiting for input
 		self.sendQueuedMessages().await?;
 		
 		loop
