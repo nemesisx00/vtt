@@ -31,7 +31,7 @@ alignment = 1
 layout_mode = 2
 text = "Server Address"
 
-[node name="IpAddress" type="TextEdit" parent="ConnectUI/HBoxContainer"]
+[node name="IpAddress" type="LineEdit" parent="ConnectUI/HBoxContainer"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(150, 35)
 layout_mode = 2
@@ -65,7 +65,7 @@ alignment = 1
 layout_mode = 2
 text = "Username"
 
-[node name="UsernameInput" type="TextEdit" parent="LoginUI/HBoxContainer"]
+[node name="UsernameInput" type="LineEdit" parent="LoginUI/HBoxContainer"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(200, 35)
 layout_mode = 2
@@ -90,6 +90,9 @@ alignment = 1
 [node name="Disconnect" type="Button" parent="ConnectedUI/HBoxContainer"]
 unique_name_in_owner = true
 layout_mode = 2
+focus_neighbor_bottom = NodePath("../../HBoxContainer3/MessageText")
+focus_next = NodePath("../../HBoxContainer3/MessageText")
+focus_previous = NodePath("../../HBoxContainer3/Message")
 text = "Disconnect"
 
 [node name="HBoxContainer2" type="HBoxContainer" parent="ConnectedUI"]
@@ -128,15 +131,23 @@ layout_mode = 2
 theme_override_constants/separation = 15
 alignment = 1
 
-[node name="MessageText" type="TextEdit" parent="ConnectedUI/HBoxContainer3"]
+[node name="MessageText" type="LineEdit" parent="ConnectedUI/HBoxContainer3"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 35)
 layout_mode = 2
 size_flags_horizontal = 3
+focus_neighbor_top = NodePath("../../HBoxContainer/Disconnect")
+focus_neighbor_right = NodePath("../Message")
+focus_next = NodePath("../Message")
+focus_previous = NodePath("../../HBoxContainer/Disconnect")
+placeholder_text = "Enter a new message here"
 
 [node name="Message" type="Button" parent="ConnectedUI/HBoxContainer3"]
 unique_name_in_owner = true
 layout_mode = 2
+focus_neighbor_left = NodePath("../MessageText")
+focus_neighbor_top = NodePath("../../HBoxContainer/Disconnect")
+focus_next = NodePath("../../HBoxContainer/Disconnect")
+focus_previous = NodePath("../MessageText")
 text = "Send Message"
 
 [node name="HBoxContainer4" type="HBoxContainer" parent="ConnectedUI"]

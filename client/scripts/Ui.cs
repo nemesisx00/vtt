@@ -11,7 +11,6 @@ public partial class Ui : Node
 	private sealed class NodePaths
 	{
 		public static readonly NodePath ClientId = new("%ClientId");
-		public static readonly NodePath ClientNode = new("%Client");
 		public static readonly NodePath Connect = new("%Connect");
 		public static readonly NodePath ConnectUi = new("%ConnectUI");
 		public static readonly NodePath ConnectedUI = new("%ConnectedUI");
@@ -34,11 +33,11 @@ public partial class Ui : Node
 	
 	private VttClient client;
 	private Label clientId;
-	private TextEdit ipAddress;
-	private TextEdit messageText;
+	private LineEdit ipAddress;
+	private LineEdit messageText;
 	private RichTextLabel output;
 	private Label username;
-	private TextEdit usernameInput;
+	private LineEdit usernameInput;
 	
 	public override void _ExitTree()
 	{
@@ -55,18 +54,22 @@ public partial class Ui : Node
 		connectUi = GetNode<VBoxContainer>(NodePaths.ConnectUi);
 		loginUi = GetNode<VBoxContainer>(NodePaths.LoginUi);
 		
-		client = GetNode<VttClient>(NodePaths.ClientNode);
+		client = GetNode<VttClient>(VttClient.NodePath);
 		clientId = GetNode<Label>(NodePaths.ClientId);
-		ipAddress = GetNode<TextEdit>(NodePaths.IpAddress);
-		messageText = GetNode<TextEdit>(NodePaths.MessageText);
+		ipAddress = GetNode<LineEdit>(NodePaths.IpAddress);
+		messageText = GetNode<LineEdit>(NodePaths.MessageText);
 		output = GetNode<RichTextLabel>(NodePaths.Output);
 		username = GetNode<Label>(NodePaths.Username);
-		usernameInput = GetNode<TextEdit>(NodePaths.UsernameInput);
+		usernameInput = GetNode<LineEdit>(NodePaths.UsernameInput);
 		
 		GetNode<Button>(NodePaths.Connect).Pressed += handleConnectButton;
 		GetNode<Button>(NodePaths.Disconnect).Pressed += handleDisconnectButton;
 		GetNode<Button>(NodePaths.Login).Pressed += handleLoginButton;
 		GetNode<Button>(NodePaths.Message).Pressed += handleMessageButton;
+		
+		ipAddress.TextSubmitted += _ => handleConnectButton();
+		messageText.TextSubmitted += _ => handleMessageButton();
+		usernameInput.TextSubmitted += _ => handleLoginButton();
 		
 		client.DisplayMessage += handleDisplayMessage;
 		client.LoginResponse += handleLoginResponse;
@@ -75,6 +78,8 @@ public partial class Ui : Node
 		connectedUi.Hide();
 		loginUi.Hide();
 		connectUi.Show();
+		
+		ipAddress.GrabFocus();
 	}
 	
 	private void handleConnectButton()
@@ -93,7 +98,10 @@ public partial class Ui : Node
 				var endpoint = new IPEndPoint(address, port);
 				client.ConnectSocket(endpoint);
 			}
-			catch (Exception) {}
+			catch (Exception)
+			{
+				//TODO: Inform user of error
+			}
 		}
 	}
 	
@@ -107,6 +115,9 @@ public partial class Ui : Node
 		clientId.Text = string.Empty;
 		username.Text = string.Empty;
 		output.Text = string.Empty;
+		output.Clear();
+		
+		ipAddress.GrabFocus();
 	}
 	
 	private void handleDisplayMessage(string text)
@@ -133,6 +144,7 @@ public partial class Ui : Node
 			connectedUi.Show();
 			
 			usernameInput.Clear();
+			messageText.GrabFocus();
 		}
 		else
 		{
@@ -163,5 +175,6 @@ public partial class Ui : Node
 		loginUi.Show();
 		
 		ipAddress.Clear();
+		usernameInput.GrabFocus();
 	}
 }
