@@ -11,6 +11,6 @@ public class Command() : Message
 	public Commands Type { get; set; }
 	
 	public DateTimeOffset ParseTimestamp() => DateTimeOffset.FromUnixTimeSeconds(Timestamp);
-	public AuthenticationData ParseAuthenticationData() => new(Data);
+	public AuthenticationData ParseAuthenticationData() => AuthenticationData.Deserialize(Data);
 	public BroadcastData ParseBroadcastData() => BroadcastData.Deserialize(Data);
 }

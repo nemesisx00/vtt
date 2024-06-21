@@ -5,6 +5,8 @@ namespace Vtt;
 
 public partial class AppState : Node
 {
+	public static readonly NodePath NodePath = new("/root/AppState");
+	
 	private VttClient client;
 	
 	public override void _Notification(int what)

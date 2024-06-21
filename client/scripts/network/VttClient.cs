@@ -104,6 +104,7 @@ public partial class VttClient : Node
 					var ad = command.ParseAuthenticationData();
 					status.id = ad.ClientId;
 					status.loggedIn = true;
+					status.username = ad.Username;
 					EmitSignal(SignalName.LoginResponse, true);
 					break;
 				
