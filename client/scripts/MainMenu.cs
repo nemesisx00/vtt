@@ -98,8 +98,6 @@ public partial class MainMenu : MarginContainer
 	
 	private void handleLoginResponse(bool success)
 	{
-		GD.Print("Succeeded logging in? ", success);
-		
 		if(success)
 		{
 			loginUi.Hide();
