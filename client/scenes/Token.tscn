@@ -1,6 +1,6 @@
 [gd_scene load_steps=5 format=3 uid="uid://0up4riere6um"]
 
-[ext_resource type="Script" path="res://scripts/Unit.cs" id="1_4rk5a"]
+[ext_resource type="Script" path="res://scripts/Token.cs" id="1_4rk5a"]
 [ext_resource type="Texture2D" uid="uid://mcn8pcrky1md" path="res://assets/UnitPlaceholder.png" id="1_hbuwu"]
 [ext_resource type="Texture2D" uid="uid://dvidpnyxii71j" path="res://assets/SelectionPlaceholder.png" id="2_6vp7h"]
 

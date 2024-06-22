@@ -2,7 +2,7 @@ using Godot;
 
 namespace Vtt;
 
-public partial class Unit : CharacterBody2D
+public partial class Token : CharacterBody2D
 {
 	private static class NodePaths
 	{
@@ -16,10 +16,12 @@ public partial class Unit : CharacterBody2D
 		get => navAgent.TargetPosition;
 		set
 		{
-			if(selectionSprite.Visible)
+			if(Selected)
 				navAgent.TargetPosition = value;
 		}
 	}
+	
+	public bool Selected => selectionSprite.Visible;
 	
 	[Export]
 	private float speed = 500.0f;

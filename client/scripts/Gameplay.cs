@@ -6,19 +6,19 @@ public partial class Gameplay : Node2D
 {
 	private sealed class NodePaths
 	{
-		public static readonly NodePath Unit = new("Unit");
+		public static readonly NodePath Token = new("Token");
 	}
 	
-	private Unit unit;
+	private Token token;
 	
 	public override void _UnhandledInput(InputEvent evt)
 	{
 		if(evt.IsActionPressed(Actions.Move) && evt is InputEventMouseButton iemb)
-			unit.Destination = iemb.GlobalPosition;
+			token.Destination = iemb.GlobalPosition;
 	}
 	
 	public override void _Ready()
 	{
-		unit = GetNode<Unit>(NodePaths.Unit);
+		token = GetNode<Token>(NodePaths.Token);
 	}
 }

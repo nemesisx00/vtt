@@ -2,7 +2,7 @@
 
 [ext_resource type="PackedScene" uid="uid://du3dfofy6xuo7" path="res://scenes/GameplayUI.tscn" id="1_7458q"]
 [ext_resource type="Script" path="res://scripts/Gameplay.cs" id="1_bj5id"]
-[ext_resource type="PackedScene" uid="uid://0up4riere6um" path="res://scenes/Unit.tscn" id="3_uph2w"]
+[ext_resource type="PackedScene" uid="uid://0up4riere6um" path="res://scenes/Token.tscn" id="3_uph2w"]
 
 [sub_resource type="NavigationPolygon" id="NavigationPolygon_3g827"]
 vertices = PackedVector2Array(1209, 646, 634, 646, 634, 90, 1208, 90)
@@ -22,4 +22,4 @@ offset_bottom = 200.0
 [node name="NavigationRegion2D" type="NavigationRegion2D" parent="."]
 navigation_polygon = SubResource("NavigationPolygon_3g827")
 
-[node name="Unit" parent="." instance=ExtResource("3_uph2w")]
+[node name="Token" parent="." instance=ExtResource("3_uph2w")]
