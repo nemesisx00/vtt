@@ -4,7 +4,7 @@ using Vtt.Network.Payload;
 
 namespace Vtt;
 
-public partial class GameplayUI : VBoxContainer
+public partial class GameplayUI : MarginContainer
 {
 	private sealed class NodePaths
 	{

@@ -115,7 +115,7 @@ public partial class MainMenu : MarginContainer
 	
 	private void handleQuit()
 		=> GetNode<AppState>(AppState.NodePath)
-			._Notification((int)NotificationWMCloseRequest);
+			.Notification((int)NotificationWMCloseRequest);
 	
 	private void handleSocketConnected()
 	{

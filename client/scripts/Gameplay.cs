@@ -3,15 +3,22 @@ using Godot;
 namespace Vtt;
 
 public partial class Gameplay : Node2D
-{	private sealed class NodePaths
+{
+	private sealed class NodePaths
 	{
-		public static readonly NodePath GameplayUI = new("%GameplayUI");
+		public static readonly NodePath Unit = new("Unit");
 	}
 	
-	private VBoxContainer gameplayUi;
+	private Unit unit;
+	
+	public override void _UnhandledInput(InputEvent evt)
+	{
+		if(evt.IsActionPressed(Actions.Move) && evt is InputEventMouseButton iemb)
+			unit.Destination = iemb.GlobalPosition;
+	}
 	
 	public override void _Ready()
 	{
-		gameplayUi = GetNode<VBoxContainer>(NodePaths.GameplayUI);
+		unit = GetNode<Unit>(NodePaths.Unit);
 	}
 }

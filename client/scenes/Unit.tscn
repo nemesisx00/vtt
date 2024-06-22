@@ -1,0 +1,29 @@
+[gd_scene load_steps=5 format=3 uid="uid://0up4riere6um"]
+
+[ext_resource type="Script" path="res://scripts/Unit.cs" id="1_4rk5a"]
+[ext_resource type="Texture2D" uid="uid://mcn8pcrky1md" path="res://assets/UnitPlaceholder.png" id="1_hbuwu"]
+[ext_resource type="Texture2D" uid="uid://dvidpnyxii71j" path="res://assets/SelectionPlaceholder.png" id="2_6vp7h"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_u8pyl"]
+size = Vector2(100, 100)
+
+[node name="Unit" type="CharacterBody2D"]
+position = Vector2(718, 295)
+input_pickable = true
+motion_mode = 1
+script = ExtResource("1_4rk5a")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("RectangleShape2D_u8pyl")
+
+[node name="Icon" type="Sprite2D" parent="."]
+unique_name_in_owner = true
+texture = ExtResource("1_hbuwu")
+
+[node name="Selection" type="Sprite2D" parent="."]
+unique_name_in_owner = true
+visible = false
+texture = ExtResource("2_6vp7h")
+
+[node name="NavigationAgent2D" type="NavigationAgent2D" parent="."]
+unique_name_in_owner = true
