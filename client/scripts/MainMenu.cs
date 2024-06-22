@@ -65,6 +65,7 @@ public partial class MainMenu : MarginContainer
 	{
 		if(!string.IsNullOrEmpty(ipAddress.Text))
 		{
+			ipAddress.Editable = false;
 			var input = ipAddress.Text.Split(':');
 			
 			var ip = input[0] ?? string.Empty;
@@ -80,6 +81,7 @@ public partial class MainMenu : MarginContainer
 			catch (Exception)
 			{
 				//TODO: Inform user of error
+				ipAddress.Editable = true;
 			}
 		}
 	}
@@ -88,6 +90,7 @@ public partial class MainMenu : MarginContainer
 	{
 		if(!string.IsNullOrEmpty(usernameInput.Text))
 		{
+			usernameInput.Editable = false;
 			client.SendMessage(
 				client.Status.id,
 				Commands.AuthenticateSend,
@@ -103,6 +106,7 @@ public partial class MainMenu : MarginContainer
 			loginUi.Hide();
 			connectUi.Hide();
 			
+			usernameInput.Editable = false;
 			usernameInput.Clear();
 			
 			GetTree().ChangeSceneToFile(Scenes.Gameplay);
@@ -110,6 +114,7 @@ public partial class MainMenu : MarginContainer
 		else
 		{
 			//TODO: alert user
+			usernameInput.Editable = true;
 		}
 	}
 	
@@ -122,6 +127,7 @@ public partial class MainMenu : MarginContainer
 		connectUi.Hide();
 		loginUi.Show();
 		
+		ipAddress.Editable = true;
 		ipAddress.Clear();
 		usernameInput.GrabFocus();
 	}
