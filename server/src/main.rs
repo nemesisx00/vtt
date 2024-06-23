@@ -1,6 +1,7 @@
 mod config;
 mod data;
 mod net;
+mod util;
 
 use std::path::PathBuf;
 use ::anyhow::Result;

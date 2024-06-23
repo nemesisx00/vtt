@@ -108,7 +108,7 @@ public partial class VttClient : Node
 					EmitSignal(SignalName.LoginResponse, true);
 					break;
 				
-				case Commands.BroadcastReceive:
+				case Commands.BroadcastResponse:
 					var bd = command.ParseBroadcastData();
 					EmitSignal(SignalName.DisplayMessage, bd.Text);
 					break;

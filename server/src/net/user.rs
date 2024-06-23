@@ -32,6 +32,21 @@ impl UserManager
 		return Some(*id);
 	}
 	
+	pub fn getUserId(&self, clientId: i64) -> Option<String>
+	{
+		let mut id = None;
+		
+		for (user, client) in self.users.borrow().iter()
+		{
+			if client == &clientId
+			{
+				id = Some(user.to_owned());
+			}
+		}
+		
+		return id;
+	}
+	
 	fn getNextId(&self) -> i64
 	{
 		let mut nextId = self.nextId.borrow_mut();

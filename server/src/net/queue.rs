@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use std::sync::{Mutex, OnceLock};
 use ::anyhow::Result;
 use ::chrono::{DateTime, Utc};
-use super::enums::Commands;
+use super::commands::Commands;
 use super::payload::Command;
 
 pub fn getMessageQueue() -> &'static Mutex<MessageQueue>
@@ -47,7 +47,7 @@ impl MessageQueue
 		
 		for id in keys
 		{
-			self.queueCommand(id, Commands::BroadcastReceive, Some(data.clone()))?;
+			self.queueCommand(id, Commands::BroadcastResponse, Some(data.clone()))?;
 		}
 		
 		return Ok(());

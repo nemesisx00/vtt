@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use ::anyhow::Result;
-use chrono::{Duration, Utc};
+use ::chrono::{NaiveDateTime, Utc};
 use ::fastwebsockets::{FragmentCollector, Frame, Payload, OpCode};
 use ::fastwebsockets::upgrade::UpgradeFut;
 use ::hyper::upgrade::Upgraded;
@@ -10,7 +10,8 @@ use ::tokio_util::sync::CancellationToken;
 use crate::data::dao;
 use crate::data::{Message, User};
 use crate::net::user::getUserManager;
-use super::enums::Commands;
+use crate::util::parseDateTime;
+use super::commands::Commands;
 use super::payload::Command;
 use super::queue::getMessageQueue;
 
@@ -22,6 +23,7 @@ pub struct WebSocketClient
 }
 
 unsafe impl Send for WebSocketClient {}
+unsafe impl Sync for WebSocketClient {}
 
 impl WebSocketClient
 {
@@ -116,8 +118,9 @@ impl WebSocketClient
 				let command: Command = serde_json::from_str(json)?;
 				match command.Type
 				{
-					Commands::BroadcastSend => self.handleBroadcastSend(command).await?,
 					Commands::AuthenticateSend => self.handleAuthenticateSend(command).await?,
+					Commands::BroadcastGetRequest => self.handleBroadcastGetRequest(command).await?,
+					Commands::BroadcastRequest => self.handleBroadcastSend(command).await?,
 					_ => {},
 				}
 			},
@@ -146,6 +149,7 @@ impl WebSocketClient
 							error!("Error searching the db for username '{}': {:?}", username, e);
 							None
 						},
+						
 						Ok(opt) => match opt
 						{
 							None => {
@@ -156,6 +160,7 @@ impl WebSocketClient
 								};
 								dao::userCreate(Some(content)).await?
 							},
+							
 							Some(u) => Some(u),
 						},
 					};
@@ -171,18 +176,6 @@ impl WebSocketClient
 								{
 									self.id = newId;
 									
-									let start = (Utc::now() - Duration::days(1)).naive_utc();
-									let end = Utc::now().naive_utc();
-									let messages = dao::messageFindByDateRange(start, end).await?;
-									
-									for m in messages
-									{
-										let data: HashMap<String, String> = vec![
-											("text".to_string(), m.text.to_owned()),
-										].into_iter().collect();
-										self.queueCommand(self.id.to_owned(), Commands::BroadcastReceive, Some(data))?;
-									}
-									
 									let data: HashMap<String, String> = vec![
 										("clientId".to_string(), self.id.to_string()),
 										("username".to_string(), user.name.to_owned()),
@@ -192,9 +185,11 @@ impl WebSocketClient
 									self.queueBroadcast(format!("{} ({}) connected!", user.name, self.id))?;
 								}
 							},
+							
 							None => self.queueCommand(self.id, Commands::AuthenticateFail, None)?,
 						}
 					},
+					
 					None => self.queueCommand(self.id, Commands::AuthenticateFail, None)?,
 				}
 			}
@@ -203,7 +198,20 @@ impl WebSocketClient
 		return Ok(());
 	}
 	
-	async fn handleBroadcastSend(&mut self, command: Command) -> Result<()>
+	async fn handleBroadcastGetRequest(&self, command: Command) -> Result<()>
+	{
+		if let Some(start) = parseDateTime(command.Data.get("start"))
+		{
+			if let Some(end) = parseDateTime(command.Data.get("end"))
+			{
+				self.queueExistingMessages(start.naive_utc(), end.naive_utc()).await?;
+			}
+		}
+		
+		return Ok(());
+	}
+	
+	async fn handleBroadcastSend(&self, command: Command) -> Result<()>
 	{
 		if let Some(text) = command.Data.get("text")
 		{
@@ -247,6 +255,37 @@ impl WebSocketClient
 		if let Ok(queue) = getMessageQueue().lock()
 		{
 			queue.queueCommand(id, command, data)?;
+		}
+		
+		return Ok(());
+	}
+	
+	async fn queueExistingMessages(&self, start: NaiveDateTime, end: NaiveDateTime) -> Result<()>
+	{
+		let messages = dao::messageFindByDateRange(start, end).await?;
+		if !messages.is_empty()
+		{
+			let users = dao::userGetAll().await?;
+			
+			for m in messages
+			{
+				let username = match m.userId
+				{
+					None => String::default(),
+					Some(userId) => match users.iter()
+						.find(|u| u.id.as_ref().is_some_and(|t| t == &userId))
+					{
+						None => String::default(),
+						Some(user) => user.name.to_owned(),
+					},
+				};
+				
+				let data: HashMap<String, String> = vec![
+					("text".to_string(), format!("{}: {}", username, m.text.to_owned())),
+				].into_iter().collect();
+				
+				self.queueCommand(self.id.to_owned(), Commands::BroadcastResponse, Some(data))?;
+			}
 		}
 		
 		return Ok(());

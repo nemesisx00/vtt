@@ -1,5 +1,5 @@
 mod client;
-mod enums;
+mod commands;
 mod payload;
 mod queue;
 mod server;

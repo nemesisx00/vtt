@@ -1,3 +1,6 @@
+[assets]
+path = ""
+
 [database]
 databaseType = 1
 name = "vtt"

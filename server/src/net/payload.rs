@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use ::serde::{Deserialize, Serialize};
-use super::enums::Commands;
+use super::commands::Commands;
 
 #[derive(Clone, Debug, Default, Deserialize, PartialEq, Eq, Serialize)]
 pub struct Command

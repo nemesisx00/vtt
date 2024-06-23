@@ -1,3 +1,4 @@
+using System;
 using Godot;
 using Vtt.Network;
 using Vtt.Network.Payload;
@@ -44,8 +45,16 @@ public partial class GameplayUI : MarginContainer
 		
 		client.DisplayMessage += handleDisplayMessage;
 		
-		GD.Print("Client ID: ", client.Status.id);
-		GD.Print("Username: ", client.Status.username);
+		
+		//Request all broadcasts from the past 24 hours
+		client.SendMessage(
+			client.Status.id,
+			Commands.BroadcastGetRequest,
+			new BroadcastGetRequestData(
+				DateTimeOffset.UtcNow.AddDays(-1).ToUnixTimeSeconds(),
+				DateTimeOffset.UtcNow.ToUnixTimeSeconds()
+			)
+		);
 		
 		clientId.Text = client.Status.id.ToString();
 		username.Text = client.Status.username;
@@ -73,7 +82,7 @@ public partial class GameplayUI : MarginContainer
 			
 			client.SendMessage(
 				client.Status.id,
-				Commands.BroadcastSend,
+				Commands.BroadcastRequest,
 				new BroadcastData(text)
 			);
 		}

@@ -10,6 +10,10 @@ public enum Commands
 	AuthenticateFail,
 	AuthenticateSuccess,
 	
-	BroadcastReceive = 200,
-	BroadcastSend,
+	BroadcastRequest = 200,
+	BroadcastResponse,
+	BroadcastGetRequest,
+	
+	Scene2DRequest = 300,
+	Scene2DResponse,
 }
