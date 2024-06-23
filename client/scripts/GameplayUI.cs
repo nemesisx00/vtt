@@ -45,7 +45,6 @@ public partial class GameplayUI : MarginContainer
 		
 		client.DisplayMessage += handleDisplayMessage;
 		
-		
 		//Request all broadcasts from the past 24 hours
 		client.SendMessage(
 			client.Status.id,
