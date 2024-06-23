@@ -1,0 +1,5 @@
+<svg height="100" width="100" version="1.1" xmlns="http://www.w3.org/2000/svg" fill="transparent">
+	<rect height="5" fill="aqua" width="5" x="30" y="35" />
+	<rect height="5" fill="aqua" width="5" x="65" y="35" />
+	<path d="M25 60 C25 60 50 85 75 60" stroke="aqua" />
+</svg>

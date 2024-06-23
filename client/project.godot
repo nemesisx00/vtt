@@ -29,6 +29,12 @@ window/size/viewport_height=720
 
 project/assembly_name="Vtt"
 
+[editor]
+
+naming/default_signal_callback_name="handle{node_name}_{signal_name}"
+naming/default_signal_callback_to_self_name="handle{signal_name}"
+naming/scene_name_casing=1
+
 [input]
 
 Select={

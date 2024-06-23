@@ -1,6 +1,6 @@
 using Godot;
 
-namespace Vtt;
+namespace Vtt.Board;
 
 public partial class Token : CharacterBody2D
 {
@@ -21,11 +21,18 @@ public partial class Token : CharacterBody2D
 		}
 	}
 	
+	public Texture2D IconImage
+	{
+		get => icon.Texture;
+		set => icon.Texture = value;
+	}
+	
 	public bool Selected => selectionSprite.Visible;
 	
 	[Export]
 	private float speed = 500.0f;
 	
+	private Sprite2D icon;
 	private NavigationAgent2D navAgent;
 	private Sprite2D selectionSprite;
 	
@@ -37,14 +44,9 @@ public partial class Token : CharacterBody2D
 	
 	public override void _PhysicsProcess(double delta)
 	{
-		base._PhysicsProcess(delta);
-		
 		if(!navAgent.IsNavigationFinished())
 		{
-			var currentPosition = GlobalPosition;
-			var nextPosition = navAgent.GetNextPathPosition();
-			
-			Velocity = currentPosition.DirectionTo(nextPosition) * speed;
+			Velocity = GlobalPosition.DirectionTo(navAgent.GetNextPathPosition()) * speed;
 			MoveAndSlide();
 		}
 	}
@@ -53,6 +55,7 @@ public partial class Token : CharacterBody2D
 	{
 		SetPhysicsProcess(false);
 		
+		icon = GetNode<Sprite2D>(NodePaths.Icon);
 		navAgent = GetNode<NavigationAgent2D>(NodePaths.NavigationAgent);
 		selectionSprite = GetNode<Sprite2D>(NodePaths.Selection);
 		
