@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use ::anyhow::Result;
+use ::base64::prelude::*;
 use ::chrono::{NaiveDateTime, Utc};
 use ::fastwebsockets::{FragmentCollector, Frame, Payload, OpCode};
 use ::fastwebsockets::upgrade::UpgradeFut;
@@ -9,6 +10,7 @@ use ::log::{info, error};
 use ::tokio_util::sync::CancellationToken;
 use crate::data::dao;
 use crate::data::{Message, User};
+use crate::data::assets::{loadAsset, Asset, Image};
 use crate::net::user::getUserManager;
 use crate::util::parseDateTime;
 use super::commands::Commands;
@@ -40,7 +42,7 @@ impl WebSocketClient
 	
 	pub async fn start(&mut self, token: CancellationToken) -> Result<()>
 	{
-		self.queueCommand(self.id, Commands::AuthenticateRequest, None)?;
+		self.queueCommandSimple(self.id, Commands::AuthenticateRequest)?;
 		self.sendQueuedMessages().await?;
 		
 		loop
@@ -121,6 +123,7 @@ impl WebSocketClient
 					Commands::AuthenticateSend => self.handleAuthenticateSend(command).await?,
 					Commands::BroadcastGetRequest => self.handleBroadcastGetRequest(command).await?,
 					Commands::BroadcastRequest => self.handleBroadcastSend(command).await?,
+					Commands::Scene2DRequest => self.handleScene2dRequest(command).await?,
 					_ => {},
 				}
 			},
@@ -139,32 +142,10 @@ impl WebSocketClient
 		
 		match command.Data.get("name")
 		{
-			None => self.queueCommand(self.id, Commands::AuthenticateFail, None)?,
+			None => self.queueCommand(self.id, Commands::AuthenticateFail, None, None)?,
 			
 			Some(username) => {
-				{
-					self.user = match dao::userFind(username.clone()).await
-					{
-						Err(e) => {
-							error!("Error searching the db for username '{}': {:?}", username, e);
-							None
-						},
-						
-						Ok(opt) => match opt
-						{
-							None => {
-								let content = User
-								{
-									name: username.to_owned(),
-									..Default::default()
-								};
-								dao::userCreate(Some(content)).await?
-							},
-							
-							Some(u) => Some(u),
-						},
-					};
-				}
+				self.user = self.userFindOrCreate(username).await;
 				
 				match &self.user
 				{
@@ -181,16 +162,16 @@ impl WebSocketClient
 										("username".to_string(), user.name.to_owned()),
 									].into_iter().collect();
 									
-									self.queueCommand(self.id, Commands::AuthenticateSuccess, Some(data))?;
+									self.queueCommand(self.id, Commands::AuthenticateSuccess, Some(data), None)?;
 									self.queueBroadcast(format!("{} ({}) connected!", user.name, self.id))?;
 								}
 							},
 							
-							None => self.queueCommand(self.id, Commands::AuthenticateFail, None)?,
+							None => self.queueCommandSimple(self.id, Commands::AuthenticateFail)?,
 						}
 					},
 					
-					None => self.queueCommand(self.id, Commands::AuthenticateFail, None)?,
+					None => self.queueCommandSimple(self.id, Commands::AuthenticateFail)?,
 				}
 			}
 		}
@@ -238,6 +219,24 @@ impl WebSocketClient
 		return Ok(());
 	}
 	
+	async fn handleScene2dRequest(&self, _command: Command) -> Result<()>
+	{
+		let image: Image = loadAsset("BackgroundPlaceholder.png".into())?;
+		
+		let data: HashMap<String, String> = vec![
+			("height".into(), "600".into()),
+			("width".into(), "900".into()),
+		].into_iter().collect();
+		
+		let binaryData: HashMap<String, String> = vec![
+			("background".into(), BASE64_STANDARD.encode(image.bytes()?)),
+		].into_iter().collect();
+		
+		self.queueCommand(self.id, Commands::Scene2DResponse, Some(data), Some(binaryData))?;
+		
+		return Ok(());
+	}
+	
 	// -----
 	
 	fn queueBroadcast(&self, text: String) -> Result<()>
@@ -250,11 +249,21 @@ impl WebSocketClient
 		return Ok(());
 	}
 	
-	fn queueCommand(&self, id: i64, command: Commands, data: Option<HashMap<String, String>>) -> Result<()>
+	fn queueCommandSimple(&self, id: i64, command: Commands) -> Result<()>
+	{
+		return self.queueCommand(id, command, None, None);
+	}
+	
+	fn queueCommand(&self,
+		id: i64,
+		command: Commands,
+		data: Option<HashMap<String, String>>,
+		binaryData: Option<HashMap<String, String>>
+	) -> Result<()>
 	{
 		if let Ok(queue) = getMessageQueue().lock()
 		{
-			queue.queueCommand(id, command, data)?;
+			queue.queueCommand(id, command, data, binaryData)?;
 		}
 		
 		return Ok(());
@@ -284,7 +293,12 @@ impl WebSocketClient
 					("text".to_string(), format!("{}: {}", username, m.text.to_owned())),
 				].into_iter().collect();
 				
-				self.queueCommand(self.id.to_owned(), Commands::BroadcastResponse, Some(data))?;
+				self.queueCommand(
+					self.id.to_owned(),
+					Commands::BroadcastResponse,
+					Some(data),
+					None
+				)?;
 			}
 		}
 		
@@ -304,7 +318,10 @@ impl WebSocketClient
 		let messages = match getMessageQueue().lock()
 		{
 			Ok(queue) => queue.readMessages(self.id),
-			Err(_) => vec![],
+			Err(e) => {
+				error!("Error reading messages for client id {}: {:?}", self.id, e);
+				vec![]
+			},
 		};
 		
 		let json = serde_json::to_string(&messages)?;
@@ -326,5 +343,39 @@ impl WebSocketClient
 		}
 		
 		return clientId;
+	}
+	
+	async fn userFindOrCreate(&self, username: &String) -> Option<User>
+	{
+		return match dao::userFind(username.clone()).await
+		{
+			Err(e) => {
+				error!("Error searching the db for username '{}': {:?}", username, e);
+				None
+			},
+			
+			Ok(opt) => match opt
+			{
+				None => {
+					let content = User
+					{
+						name: username.to_owned(),
+						..Default::default()
+					};
+					
+					match dao::userCreate(Some(content)).await
+					{
+						Ok(opt) => opt,
+						
+						Err(e) => {
+							error!("Error creating new user with username '{}': {:?}", username, e);
+							None
+						},
+					}
+				},
+				
+				Some(u) => Some(u),
+			},
+		};
 	}
 }

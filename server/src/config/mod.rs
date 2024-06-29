@@ -1,23 +1,29 @@
 mod config;
 
+#[cfg(not(test))]
 use std::fs;
+#[cfg(not(test))]
 use ::anyhow::Result;
 use ::directories::ProjectDirs;
+#[cfg(not(test))]
 use ::toml;
-pub use self::config::{Config, ConfigDatabase};
+pub use self::config::Config;
 
+#[cfg(not(test))]
 pub const ConfigPath: &'static str = "./config.toml";
 
 const ProjectQualifier: &'static str = "";
 const ProjectOrganization: &'static str = "";
 const ProjectApplication: &'static str = "VttServer";
 
+#[cfg(not(test))]
 pub fn loadConfig() -> Result<Config>
 {
 	let config = readConfig(ConfigPath)?;
 	return Ok(config);
 }
 
+#[cfg(not(test))]
 pub fn readConfig(path: &str) -> Result<Config>
 {
 	let text = fs::read_to_string(path)?;

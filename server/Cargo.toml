@@ -9,6 +9,7 @@ version = "0.1.0"
 
 [dependencies]
 anyhow = "1"
+base64 = "0"
 chrono = "0"
 directories = "5"
 fastwebsockets = { version = "0", features = [ "upgrade" ] }

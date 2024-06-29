@@ -4,6 +4,7 @@ use crate::data::DatabaseType;
 #[derive(Clone, Debug, Default, Deserialize)]
 pub struct Config
 {
+	pub assets: ConfigAssets,
 	pub database: ConfigDatabase,
 	pub network: ConfigNetwork,
 }
@@ -15,6 +16,11 @@ impl Config
 	{
 		return Self
 		{
+			assets: ConfigAssets
+			{
+				path: None,
+			},
+			
 			database: ConfigDatabase
 			{
 				databaseType: DatabaseType::Memory,
@@ -22,13 +28,20 @@ impl Config
 				namespace: "vtt".into(),
 				path: "data".into(),
 			},
+			
 			network: ConfigNetwork
 			{
 				ip: "127.0.0.1".into(),
 				port: 8080,
-			}
+			},
 		};
 	}
+}
+
+#[derive(Clone, Debug, Default, Deserialize)]
+pub struct ConfigAssets
+{
+	pub path: Option<String>,
 }
 
 #[derive(Clone, Debug, Default, Deserialize)]

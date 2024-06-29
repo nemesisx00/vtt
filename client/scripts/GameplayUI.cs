@@ -9,6 +9,7 @@ public partial class GameplayUI : MarginContainer
 {
 	private sealed class NodePaths
 	{
+		public static readonly NodePath TestButton = new("%RequestScene2d");
 		public static readonly NodePath ClientId = new("%ClientId");
 		public static readonly NodePath Disconnect = new("%Disconnect");
 		public static readonly NodePath Message = new("%Message");
@@ -38,6 +39,7 @@ public partial class GameplayUI : MarginContainer
 		output = GetNode<RichTextLabel>(NodePaths.Output);
 		username = GetNode<Label>(NodePaths.Username);
 		
+		GetNode<Button>(NodePaths.TestButton).Pressed += handleTestRequestScene;
 		GetNode<Button>(NodePaths.Disconnect).Pressed += handleDisconnectButton;
 		GetNode<Button>(NodePaths.Message).Pressed += handleMessageButton;
 		
@@ -86,4 +88,7 @@ public partial class GameplayUI : MarginContainer
 			);
 		}
 	}
+	
+	private void handleTestRequestScene()
+		=> client.SendMessage(client.Status.id, Commands.Scene2DRequest);
 }

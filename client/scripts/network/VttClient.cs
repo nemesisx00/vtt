@@ -12,9 +12,13 @@ public partial class VttClient : Node
 	[Signal]
 	public delegate void SocketConnectedEventHandler();
 	[Signal]
+	public delegate void SocketDisconnectedEventHandler();
+	[Signal]
 	public delegate void LoginResponseEventHandler(bool success);
 	[Signal]
 	public delegate void DisplayMessageEventHandler(string text);
+	[Signal]
+	public delegate void ReceivedScene2DEventHandler(long height, long width, byte[] background);
 	
 	public static readonly NodePath NodePath = new("/root/VttClient");
 	
@@ -81,8 +85,8 @@ public partial class VttClient : Node
 					break;
 				
 				case WebSocketPeer.State.Closed:
-					GD.Print(string.Format("Socket closed: {0} - {1}", socket.GetCloseCode(), socket.GetCloseReason()));
 					status.Disconnect();
+					EmitSignal(SignalName.SocketDisconnected);
 					break;
 			}
 		}
@@ -111,6 +115,11 @@ public partial class VttClient : Node
 				case Commands.BroadcastResponse:
 					var bd = command.ParseBroadcastData();
 					EmitSignal(SignalName.DisplayMessage, bd.Text);
+					break;
+				
+				case Commands.Scene2DResponse:
+					var sd = command.ParseScene2DData();
+					EmitSignal(SignalName.ReceivedScene2D, sd.BackgroundHeight, sd.BackgroundWidth, sd.Background);
 					break;
 			}
 		}

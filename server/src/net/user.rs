@@ -32,6 +32,7 @@ impl UserManager
 		return Some(*id);
 	}
 	
+	#[allow(dead_code)]
 	pub fn getUserId(&self, clientId: i64) -> Option<String>
 	{
 		let mut id = None;

@@ -1,7 +1,11 @@
 [assets]
-path = ""
+# Uncomment to set a custom path for the base asset directory
+# path = ""
 
 [database]
+# databaseType determines the form of data storage used:
+# 0 - In Memory
+# 1 - File-based
 databaseType = 1
 name = "vtt"
 namespace = "vtt"

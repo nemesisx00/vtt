@@ -1,3 +1,4 @@
+pub mod assets;
 pub mod dao;
 mod db;
 mod dbtype;

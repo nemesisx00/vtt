@@ -4,7 +4,8 @@ use ::anyhow::Result;
 use ::surrealdb::Surreal;
 use ::surrealdb::engine::local::{Db, Mem, RocksDb};
 use ::tokio::sync::Mutex;
-use crate::config::{localDataPath, ConfigDatabase};
+use crate::config::localDataPath;
+use crate::getConfig;
 use super::dbtype::DatabaseType;
 
 pub fn getDatabase() -> &'static Mutex<Database>
@@ -34,16 +35,17 @@ impl Default for Database
 
 impl Database
 {
-	pub async fn initialize(&mut self, config: ConfigDatabase) -> Result<()>
+	pub async fn initialize(&mut self) -> Result<()>
 	{
 		if !self.initialized
 		{
-			self.instance = match config.databaseType
+			let config = getConfig();
+			self.instance = match config.database.databaseType
 			{
 				DatabaseType::Memory => Surreal::new::<Mem>(()).await?,
 				
 				DatabaseType::RocksDB => {
-					let mut filePath = config.path.clone();
+					let mut filePath = config.database.path.clone();
 					if let Some(dir) = localDataPath()
 					{
 						let buf = PathBuf::from(dir)
@@ -60,8 +62,8 @@ impl Database
 			};
 			
 			self.instance
-				.use_ns(config.namespace.to_owned())
-				.use_db(config.name.to_owned())
+				.use_ns(config.database.namespace.to_owned())
+				.use_db(config.database.name.to_owned())
 				.await?;
 		}
 		

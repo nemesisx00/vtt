@@ -8,34 +8,20 @@ use ::hyper::service::service_fn;
 use ::hyper_util::rt::TokioIo;
 use ::log::{error, info};
 use ::tokio::net::TcpListener;
-use tokio_util::sync::CancellationToken;
-use crate::config::Config;
+use ::tokio_util::sync::CancellationToken;
+use crate::getConfig;
 use super::client::WebSocketClient;
 
 #[derive(Clone, Default)]
-pub struct WebSocketServer
-{
-	config: Config,
-}
-
-impl From<Config> for WebSocketServer
-{
-	fn from(value: Config) -> Self
-	{
-		return Self
-		{
-			config: value.to_owned(),
-			..Default::default()
-		};
-	}
-}
+pub struct WebSocketServer {}
 
 impl WebSocketServer
 {
 	pub async fn start(&self, token: CancellationToken) -> Result<()>
 	{
-		let listener = TcpListener::bind(self.config.network.fullAddress()).await?;
-		info!("Listening on {}", self.config.network.fullAddress());
+		let address = getConfig().network.fullAddress();
+		info!("Listening on {}", address);
+		let listener = TcpListener::bind(address).await?;
 		
 		loop
 		{

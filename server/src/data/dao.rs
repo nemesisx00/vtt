@@ -187,7 +187,6 @@ pub async fn userUpdate(user: User) -> Result<Option<User>>
 #[cfg(test)]
 mod tests
 {
-	use crate::config::Config;
 	use super::*;
 	use crate::data::dao;
 	
@@ -195,9 +194,8 @@ mod tests
 	async fn createGetUpdateUser()
 	{
 		{
-			let config = Config::getTestConfig();
 			let mut db = getDatabase().lock().await;
-			db.initialize(config.database).await.unwrap();
+			db.initialize().await.expect("Failed to initialize database");
 		}
 		
 		let username = "myusername".to_string();
@@ -208,12 +206,12 @@ mod tests
 			..Default::default()
 		};
 		
-		let mut user = dao::userCreate(Some(content)).await.unwrap();
+		let mut user = dao::userCreate(Some(content)).await.expect("Error creating test user");
 		assert!(user.is_some());
 		
 		if let Some(u) = user.as_mut()
 		{
-			let got = dao::userGet(u.id.clone().unwrap()).await.unwrap();
+			let got = dao::userGet(u.id.clone().unwrap()).await.expect("Error getting user by id");
 			assert!(got.is_some_and(|g| &g == u && g.label.is_none()));
 			
 			u.label = Some("My Username".into());
@@ -222,21 +220,21 @@ mod tests
 			assert!(userClone.label.is_some());
 			assert_eq!(userClone.label, u.label);
 			
-			let updated = dao::userUpdate(userClone).await.unwrap();
+			let updated = dao::userUpdate(userClone).await.expect("Error updating user");
 			assert!(updated.is_some());
 			let updatedUser = updated.unwrap();
 			assert_eq!(updatedUser.name, u.name);
 			assert_eq!(updatedUser.label, u.label);
 		}
 		
-		let users = dao::userGetAll().await.unwrap();
+		let users = dao::userGetAll().await.expect("Error getting all users");
 		assert!(!users.is_empty());
 		let first = users.first();
 		assert!(first.is_some());
 		let u = first.unwrap();
 		assert_eq!(Some(u.clone()), user);
 		
-		let found = dao::userFind(username.to_owned()).await.unwrap();
+		let found = dao::userFind(username.to_owned()).await.expect("Error finding user by username");
 		assert!(found.is_some());
 		let foundUser = found.unwrap();
 		assert_eq!(foundUser.name, username);
@@ -244,7 +242,7 @@ mod tests
 		let deleted = dao::userDelete(user.unwrap()).await;
 		assert!(deleted.is_ok());
 		
-		let usersAgain = dao::userGetAll().await.unwrap();
+		let usersAgain = dao::userGetAll().await.expect("Error getting all users again");
 		assert!(usersAgain.is_empty());
 	}
 }
