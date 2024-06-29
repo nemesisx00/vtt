@@ -162,7 +162,13 @@ impl WebSocketClient
 										("username".to_string(), user.name.to_owned()),
 									].into_iter().collect();
 									
-									self.queueCommand(self.id, Commands::AuthenticateSuccess, Some(data), None)?;
+									self.queueCommand(
+										self.id,
+										Commands::AuthenticateSuccess,
+										Some(data),
+										None
+									)?;
+									
 									self.queueBroadcast(format!("{} ({}) connected!", user.name, self.id))?;
 								}
 							},
@@ -232,7 +238,12 @@ impl WebSocketClient
 			("background".into(), BASE64_STANDARD.encode(image.bytes()?)),
 		].into_iter().collect();
 		
-		self.queueCommand(self.id, Commands::Scene2DResponse, Some(data), Some(binaryData))?;
+		self.queueCommand(
+			self.id,
+			Commands::Scene2DResponse,
+			Some(data),
+			Some(binaryData)
+		)?;
 		
 		return Ok(());
 	}

@@ -47,13 +47,23 @@ impl MessageQueue
 		
 		for id in keys
 		{
-			self.queueCommand(id, Commands::BroadcastResponse, Some(data.clone()), None)?;
+			self.queueCommand(
+				id,
+				Commands::BroadcastResponse,
+				Some(data.clone()),
+				None
+			)?;
 		}
 		
 		return Ok(());
 	}
 	
-	pub fn queueCommand(&self, id: i64, command: Commands, data: Option<HashMap<String, String>>, binaryData: Option<HashMap<String, String>>) -> Result<()>
+	pub fn queueCommand(&self,
+		id: i64,
+		command: Commands,
+		data: Option<HashMap<String, String>>,
+		binaryData: Option<HashMap<String, String>>
+	) -> Result<()>
 	{
 		let binaryMap = match binaryData
 		{
