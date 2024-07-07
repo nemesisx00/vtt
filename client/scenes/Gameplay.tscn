@@ -1,14 +1,7 @@
-[gd_scene load_steps=5 format=3 uid="uid://7ybgdaxbn1gu"]
+[gd_scene load_steps=3 format=3 uid="uid://7ybgdaxbn1gu"]
 
 [ext_resource type="PackedScene" uid="uid://du3dfofy6xuo7" path="res://scenes/GameplayUI.tscn" id="1_7458q"]
 [ext_resource type="Script" path="res://scripts/Gameplay.cs" id="1_bj5id"]
-[ext_resource type="PackedScene" uid="uid://0up4riere6um" path="res://scenes/Token.tscn" id="3_uph2w"]
-
-[sub_resource type="NavigationPolygon" id="NavigationPolygon_3g827"]
-vertices = PackedVector2Array(1209, 646, 634, 646, 634, 90, 1208, 90)
-polygons = Array[PackedInt32Array]([PackedInt32Array(0, 1, 2, 3)])
-outlines = Array[PackedVector2Array]([PackedVector2Array(624, 80, 624, 656, 1219, 656, 1218, 80)])
-source_geometry_group_name = &"navigation_polygon_source_group"
 
 [node name="Gameplay" type="Node2D"]
 script = ExtResource("1_bj5id")
@@ -18,8 +11,3 @@ unique_name_in_owner = true
 custom_minimum_size = Vector2(600, 200)
 offset_right = 600.0
 offset_bottom = 200.0
-
-[node name="NavigationRegion2D" type="NavigationRegion2D" parent="."]
-navigation_polygon = SubResource("NavigationPolygon_3g827")
-
-[node name="Token" parent="." instance=ExtResource("3_uph2w")]

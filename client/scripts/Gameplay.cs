@@ -1,3 +1,4 @@
+using System.Linq;
 using Godot;
 using Vtt.Board;
 using Vtt.Network;
@@ -12,8 +13,6 @@ public partial class Gameplay : Node2D
 	}
 	
 	private VttClient client;
-	private Token token;
-	
 	private PackedScene packedBoardScene;
 	private BoardScene2D boardScene;
 	
@@ -27,7 +26,12 @@ public partial class Gameplay : Node2D
 	public override void _UnhandledInput(InputEvent evt)
 	{
 		if(evt.IsActionPressed(Actions.Move) && evt is InputEventMouseButton iemb)
-			token.Destination = iemb.GlobalPosition;
+		{
+			boardScene.Tokens
+				.Where(t => t.Selected)
+				.ToList()
+				.ForEach(token => token.Destination = iemb.GlobalPosition);
+		}
 	}
 	
 	public override void _Ready()
@@ -35,7 +39,6 @@ public partial class Gameplay : Node2D
 		packedBoardScene = GD.Load<PackedScene>(Scenes.BoardScene2D);
 		
 		client = GetNode<VttClient>(VttClient.NodePath);
-		token = GetNode<Token>(NodePaths.Token);
 		
 		client.ReceivedScene2D += handleReceived2dScene;
 	}
@@ -49,12 +52,13 @@ public partial class Gameplay : Node2D
 			
 			generateNewBoardScene2D(
 				ImageTexture.CreateFromImage(image),
+				new((int)width, (int)height),
 				new(650, 400)
 			);
 		}
 	}
 	
-	private void generateNewBoardScene2D(Texture2D texture, Vector2 initialPosition = default)
+	private void generateNewBoardScene2D(Texture2D texture, Vector2 size, Vector2 initialPosition = default)
 	{
 		if(texture is not null)
 		{
@@ -64,6 +68,9 @@ public partial class Gameplay : Node2D
 			AddChild(boardScene);
 			boardScene.BackgroundTexture = texture;
 			boardScene.Position = initialPosition;
+			boardScene.GenerateGrid(size);
+			//Add a token to verify that the grid tile navigation regions are connecting properly
+			boardScene.AddToken();
 		}
 	}
 }

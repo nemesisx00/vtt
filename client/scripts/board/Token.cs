@@ -11,6 +11,9 @@ public partial class Token : CharacterBody2D
 		public static readonly NodePath Selection = new("%Selection");
 	}
 	
+	public const int Height = 100;
+	public const int Width = 100;
+	
 	public Vector2 Destination
 	{
 		get => navAgent.TargetPosition;

@@ -301,7 +301,14 @@ impl WebSocketClient
 				};
 				
 				let data: HashMap<String, String> = vec![
-					("text".to_string(), format!("{}: {}", username, m.text.to_owned())),
+					(
+						"text".to_string(),
+						match username.is_empty()
+						{
+							true => m.text.to_owned(),
+							false => format!("{}: {}", username, m.text),
+						}
+					),
 				].into_iter().collect();
 				
 				self.queueCommand(

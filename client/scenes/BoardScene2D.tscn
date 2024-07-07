@@ -1,9 +1,6 @@
-[gd_scene load_steps=3 format=3 uid="uid://c1u0lrhn1xmpm"]
+[gd_scene load_steps=2 format=3 uid="uid://c1u0lrhn1xmpm"]
 
 [ext_resource type="Script" path="res://scripts/board/BoardScene2D.cs" id="1_kgvoh"]
-
-[sub_resource type="NavigationPolygon" id="NavigationPolygon_vth8x"]
-source_geometry_group_name = &"navigation_polygon_source_group"
 
 [node name="BoardScene2D" type="Node2D"]
 script = ExtResource("1_kgvoh")
@@ -11,9 +8,8 @@ script = ExtResource("1_kgvoh")
 [node name="Background" type="Sprite2D" parent="."]
 unique_name_in_owner = true
 
-[node name="NavigationRegion2D" type="NavigationRegion2D" parent="."]
+[node name="Grid" type="Node2D" parent="."]
 unique_name_in_owner = true
-navigation_polygon = SubResource("NavigationPolygon_vth8x")
 
-[node name="Tokens" type="Node" parent="."]
+[node name="Tokens" type="Node2D" parent="."]
 unique_name_in_owner = true
