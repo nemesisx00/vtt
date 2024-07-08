@@ -9,7 +9,7 @@ public partial class Gameplay : Node2D
 {
 	private sealed class NodePaths
 	{
-		public static readonly NodePath Token = new("Token");
+		public static readonly NodePath GameplayUi = new("%GameplayUI");
 	}
 	
 	private VttClient client;
@@ -19,6 +19,8 @@ public partial class Gameplay : Node2D
 	public override void _ExitTree()
 	{
 		client.ReceivedScene2D -= handleReceived2dScene;
+		
+		GetNode<GameplayUI>(NodePaths.GameplayUi).AddTokenRequest -= handleAddTokenRequest;
 		
 		base._ExitTree();
 	}
@@ -41,7 +43,10 @@ public partial class Gameplay : Node2D
 		client = GetNode<VttClient>(VttClient.NodePath);
 		
 		client.ReceivedScene2D += handleReceived2dScene;
+		GetNode<GameplayUI>(NodePaths.GameplayUi).AddTokenRequest += handleAddTokenRequest;
 	}
+	
+	private void handleAddTokenRequest() => boardScene?.AddToken();
 	
 	private void handleReceived2dScene(long height, long width, byte[] background)
 	{
@@ -53,7 +58,8 @@ public partial class Gameplay : Node2D
 			generateNewBoardScene2D(
 				ImageTexture.CreateFromImage(image),
 				new((int)width, (int)height),
-				new(650, 400)
+				GetViewportRect().GetCenter()
+				// Probably need a more absolute position than this. something like: new(width / 2, height / 2)
 			);
 		}
 	}
@@ -69,8 +75,6 @@ public partial class Gameplay : Node2D
 			boardScene.BackgroundTexture = texture;
 			boardScene.Position = initialPosition;
 			boardScene.GenerateGrid(size);
-			//Add a token to verify that the grid tile navigation regions are connecting properly
-			boardScene.AddToken();
 		}
 	}
 }

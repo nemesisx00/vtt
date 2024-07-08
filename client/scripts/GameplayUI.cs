@@ -9,6 +9,7 @@ public partial class GameplayUI : MarginContainer
 {
 	private sealed class NodePaths
 	{
+		public static readonly NodePath AddTokenButton = new("%AddToken");
 		public static readonly NodePath TestButton = new("%RequestScene2d");
 		public static readonly NodePath ClientId = new("%ClientId");
 		public static readonly NodePath Disconnect = new("%Disconnect");
@@ -17,6 +18,9 @@ public partial class GameplayUI : MarginContainer
 		public static readonly NodePath Output = new("%Output");
 		public static readonly NodePath Username = new("%Username");
 	}
+	
+	[Signal]
+	public delegate void AddTokenRequestEventHandler();
 	
 	private VttClient client;
 	private Label clientId;
@@ -39,6 +43,7 @@ public partial class GameplayUI : MarginContainer
 		output = GetNode<RichTextLabel>(NodePaths.Output);
 		username = GetNode<Label>(NodePaths.Username);
 		
+		GetNode<Button>(NodePaths.AddTokenButton).Pressed += handleAddToken;
 		GetNode<Button>(NodePaths.TestButton).Pressed += handleTestRequestScene;
 		GetNode<Button>(NodePaths.Disconnect).Pressed += handleDisconnectButton;
 		GetNode<Button>(NodePaths.Message).Pressed += handleMessageButton;
@@ -63,6 +68,12 @@ public partial class GameplayUI : MarginContainer
 		messageText.GrabFocus();
 	}
 	
+	private void handleAddToken()
+	{
+		EmitSignal(SignalName.AddTokenRequest);
+		messageText.GrabFocus();
+	}
+	
 	private void handleDisconnectButton()
 	{
 		client.DisconnectSocket();
@@ -70,8 +81,7 @@ public partial class GameplayUI : MarginContainer
 		GetTree().ChangeSceneToFile(Scenes.MainMenu);
 	}
 	
-	private void handleDisplayMessage(string text)
-		=> output.AddText($"\n{text}");
+	private void handleDisplayMessage(string text) => output.AddText($"\n{text}");
 	
 	private void handleMessageButton()
 	{
@@ -90,5 +100,8 @@ public partial class GameplayUI : MarginContainer
 	}
 	
 	private void handleTestRequestScene()
-		=> client.SendMessage(client.Status.id, Commands.Scene2DRequest);
+	{
+		client.SendMessage(client.Status.id, Commands.Scene2DRequest);
+		messageText.GrabFocus();
+	}
 }
