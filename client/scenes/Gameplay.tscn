@@ -6,8 +6,15 @@
 [node name="Gameplay" type="Node2D"]
 script = ExtResource("1_bj5id")
 
-[node name="GameplayUI" parent="." instance=ExtResource("1_7458q")]
+[node name="Camera2D" type="Camera2D" parent="."]
 unique_name_in_owner = true
+
+[node name="GameplayUI" parent="Camera2D" instance=ExtResource("1_7458q")]
+unique_name_in_owner = true
+z_index = 1000
+z_as_relative = false
 custom_minimum_size = Vector2(600, 200)
-offset_right = 600.0
-offset_bottom = 200.0
+offset_left = -640.0
+offset_top = -360.0
+offset_right = -40.0
+offset_bottom = -160.0
