@@ -96,7 +96,7 @@ public partial class Gameplay : Node2D
 	{
 		if(packedBoardScene.CanInstantiate())
 		{
-			var image = Image.Create((int)width, (int)height, false, Image.Format.Rgba8);
+			var image = Image.CreateEmpty((int)width, (int)height, false, Image.Format.Rgba8);
 			image.LoadPngFromBuffer(background);
 			
 			generateNewBoardScene2D(
