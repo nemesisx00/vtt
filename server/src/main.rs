@@ -80,7 +80,7 @@ async fn main() -> Result<()>
 async fn initializeDatabase()
 {
 	let mut db = getDatabase().lock().await;
-	match db.initialize().await
+	match db.initialize()
 	{
 		Ok(_) => info!("Database initialized!"),
 		Err(e) => error!("Error initializing database: {:?}", e),
