@@ -1,49 +1,29 @@
-use ::serde::{Deserialize, Serialize};
-use ::surrealdb::Result;
-use ::surrealdb::opt::{IntoResource, Resource};
-use ::surrealdb::sql::{Object, Thing};
-use super::ImageAsset;
+use ::diesel::{Insertable, Selectable, Queryable};
+use super::super::schema;
 
-const Property_Background: &'static str = "background";
-const Property_Id: &'static str = "id";
-const Property_Name: &'static str = "name";
+pub const CreateTable_Scenes2D: &'static str = r#"CREATE TABLE IF NOT EXISTS scenes2d
+(
+	id INTEGER PRIMARY KEY,
+	name TEXT NOT NULL,
+	backgroundId INTEGER NOT NULL
+)"#;
 
-#[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
+pub const DropTable_Scenes2D: &'static str = "DROP TABLE scenes2d";
+
+#[derive(Clone, Debug, Default, PartialEq, Selectable, Queryable)]
+#[diesel(table_name = schema::scenes2d)]
+#[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 pub struct Scene2D
 {
-	pub id: Option<Thing>,
+	pub id: i32,
 	pub name: String,
-	pub background: ImageAsset,
+	pub backgroundId: i32,
 }
 
-impl Into<Object> for Scene2D
+#[derive(Clone, Debug, Default, Insertable)]
+#[diesel(table_name = schema::scenes2d)]
+pub struct NewScene2D
 {
-	fn into(self) -> Object
-	{
-		let mut obj = Object::default();
-		
-		if let Some(id) = &self.id
-		{
-			obj.insert(Property_Id.into(), id.to_owned().into());
-		}
-		
-		obj.insert(Property_Name.into(), self.name.into());
-		obj.insert(Property_Background.into(), self.background.into());
-		
-		return obj;
-	}
-}
-
-impl IntoResource<Resource> for Scene2D
-{
-	fn into_resource(self) -> Result<Resource>
-	{
-		let obj: Object = self.into();
-		return Ok(obj.into());
-	}
-}
-
-impl Scene2D
-{
-	pub const ResourceName: &'static str = "scene2d";
+	pub name: String,
+	pub backgroundId: i32,
 }

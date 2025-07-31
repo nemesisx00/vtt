@@ -1,55 +1,33 @@
-use ::serde::{Deserialize, Serialize};
-use ::surrealdb::Result;
-use ::surrealdb::opt::{IntoResource, Resource};
-use ::surrealdb::sql::{Object, Thing};
+use ::chrono::NaiveDateTime;
+use ::diesel::{Insertable, Selectable, Queryable};
+use super::super::schema;
 
-const Property_Id: &'static str = "id";
-const Property_Text: &'static str = "text";
-const Property_Timestamp: &'static str = "timestamp";
-const Property_UserId: &'static str = "userId";
+pub const CreateTable_Messages: &'static str = r#"CREATE TABLE IF NOT EXISTS messages
+(
+	id INTEGER PRIMARY KEY,
+	text TEXT NOT NULL,
+	timestamp TIMESTAMP NOT NULL,
+	userId INTEGER
+)"#;
 
-#[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
+pub const DropTable_Messages: &'static str = "DROP TABLE messages";
+
+#[derive(Clone, Debug, Default, PartialEq, Selectable, Queryable)]
+#[diesel(table_name = schema::messages)]
+#[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 pub struct Message
 {
-	pub id: Option<Thing>,
+	pub id: i32,
 	pub text: String,
-	pub timestamp: i64,
-	pub userId: Option<Thing>,
+	pub timestamp: NaiveDateTime,
+	pub userId: Option<i32>,
 }
 
-impl Into<Object> for Message
+#[derive(Clone, Debug, Default, Insertable)]
+#[diesel(table_name = schema::messages)]
+pub struct NewMessage
 {
-	fn into(self) -> Object
-	{
-		let mut obj = Object::default();
-		
-		if let Some(id) = &self.id
-		{
-			obj.insert(Property_Id.into(), id.to_owned().into());
-		}
-		
-		obj.insert(Property_Text.into(), self.text.to_owned().into());
-		obj.insert(Property_Timestamp.into(), self.timestamp.to_owned().into());
-		
-		if let Some(userId) = &self.userId
-		{
-			obj.insert(Property_UserId.into(), userId.to_owned().into());
-		}
-		
-		return obj;
-	}
-}
-
-impl IntoResource<Resource> for Message
-{
-	fn into_resource(self) -> Result<Resource>
-	{
-		let obj: Object = self.into();
-		return Ok(obj.into());
-	}
-}
-
-impl Message
-{
-	pub const ResourceName: &'static str = "message";
+	pub text: String,
+	pub timestamp: NaiveDateTime,
+	pub userId: Option<i32>,
 }

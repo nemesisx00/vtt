@@ -1,51 +1,29 @@
-use ::serde::{Deserialize, Serialize};
-use ::surrealdb::Result;
-use ::surrealdb::opt::{IntoResource, Resource};
-use ::surrealdb::sql::{Object, Thing};
+use ::diesel::{Insertable, Selectable, Queryable};
+use super::super::schema;
 
-const Property_Id: &'static str = "id";
-const Property_Label: &'static str = "label";
-const Property_Name: &'static str = "name";
+pub const CreateTable_Users: &'static str = r#"CREATE TABLE IF NOT EXISTS users
+(
+	id INTEGER PRIMARY KEY,
+	label TEXT DEFAULT NULL,
+	name TEXT NOT NULL
+)"#;
 
-#[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
+pub const DropTable_Users: &'static str = "DROP TABLE users";
+
+#[derive(Clone, Debug, Default, PartialEq, Selectable, Queryable)]
+#[diesel(table_name = schema::users)]
+#[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 pub struct User
 {
-	pub id: Option<Thing>,
+	pub id: i32,
 	pub label: Option<String>,
 	pub name: String,
 }
 
-impl Into<Object> for User
+#[derive(Clone, Debug, Default, Insertable)]
+#[diesel(table_name = schema::users)]
+pub struct NewUser
 {
-	fn into(self) -> Object
-	{
-		let mut obj = Object::default();
-		if let Some(id) = &self.id
-		{
-			obj.insert(Property_Id.into(), id.to_owned().into());
-		}
-		
-		if let Some(label) = &self.label
-		{
-			obj.insert(Property_Label.into(), label.to_owned().into());
-		}
-		
-		obj.insert(Property_Name.into(), self.name.to_owned().into());
-		
-		return obj;
-	}
-}
-
-impl IntoResource<Resource> for User
-{
-	fn into_resource(self) -> Result<Resource>
-	{
-		let obj: Object = self.into();
-		return Ok(obj.into());
-	}
-}
-
-impl User
-{
-	pub const ResourceName: &'static str = "user";
+	pub label: Option<String>,
+	pub name: String,
 }

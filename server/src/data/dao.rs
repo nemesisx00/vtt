@@ -1,45 +1,25 @@
-use std::future::IntoFuture;
 use ::anyhow::Result;
 use ::chrono::NaiveDateTime;
-use ::surrealdb::sql::Thing;
+use ::diesel::{ExpressionMethods, RunQueryDsl, SelectableHelper, QueryDsl};
 use super::db::getDatabase;
-use super::model::{Message, User};
+use super::model::{Message, NewMessage, NewUser, User};
+use super::schema;
+use super::schema::messages::dsl::messages;
+use super::schema::users::dsl::users;
 
-const ParameterEnd: &'static str = "end";
-const ParameterStart: &'static str = "start";
-const ParameterUserId: &'static str = "userId";
-const ParameterUsername: &'static str = "username";
-
-#[allow(dead_code)]
-const SelectByIdTemplate: &'static str = "SELECT * FROM ";
-
-const SelectMessageByDateRange: &'static str = r#"SELECT *
-FROM message
-WHERE timestamp >= $start
-	AND timestamp <= $end
-ORDER BY timestamp ASC"#;
-
-const SelectMessageByUserId: &'static str = r#"SELECT *
-FROM message
-WHERE userId = $userId"#;
-
-const SelectUserByName: &'static str = r#"SELECT *
-FROM user
-WHERE name = $username"#;
-
-pub async fn messageCreate(content: Option<Message>) -> Result<Option<Message>>
+pub async fn messageCreate(newMessage: NewMessage) -> Result<Option<Message>>
 {
-	let db = getDatabase().lock().await;
+	let mut db = getDatabase().lock().await;
 	
-	let result: Vec<Message> = db.instance
-		.create(Message::ResourceName)
-		.content(content)
-		.await?;
-	
-	let message = match result.first()
+	let message = match db.connection
 	{
-		Some(msg) => Some(msg.clone()),
 		None => None,
+		Some(ref mut conn) => {
+			Some(diesel::insert_into(schema::messages::table)
+				.values(newMessage)
+				.returning(Message::as_returning())
+				.get_result(conn)?)
+		}
 	};
 	
 	return Ok(message);
@@ -47,28 +27,32 @@ pub async fn messageCreate(content: Option<Message>) -> Result<Option<Message>>
 
 pub async fn messageFindByDateRange(start: NaiveDateTime, end: NaiveDateTime) -> Result<Vec<Message>>
 {
-	let db = getDatabase().lock().await;
+	let mut db = getDatabase().lock().await;
 	
-	let result = db.instance
-		.query(SelectMessageByDateRange)
-		.bind((ParameterStart, start.and_utc().timestamp()))
-		.bind((ParameterEnd, end.and_utc().timestamp()))
-		.await?
-		.take(0)?;
+	let result = match db.connection
+	{
+		None => vec![],
+		Some(ref mut conn) => messages
+			.filter(super::schema::messages::dsl::timestamp.ge(start))
+			.filter(super::schema::messages::dsl::timestamp.le(end))
+			.load(conn)?
+	};
 	
 	return Ok(result);
 }
 
 #[allow(dead_code)]
-pub async fn messageFindByUser(userId: Thing) -> Result<Vec<Message>>
+pub async fn messageFindByUser(userId: i32) -> Result<Vec<Message>>
 {
-	let db = getDatabase().lock().await;
+	let mut db = getDatabase().lock().await;
 	
-	let result = db.instance
-		.query(SelectMessageByUserId)
-		.bind((ParameterUserId, userId))
-		.await?
-		.take(0)?;
+	let result = match db.connection
+	{
+		None => vec![],
+		Some(ref mut conn) => messages
+			.filter(super::schema::messages::dsl::userId.eq(userId))
+			.load(conn)?
+	};
 	
 	return Ok(result);
 }
@@ -76,28 +60,28 @@ pub async fn messageFindByUser(userId: Thing) -> Result<Vec<Message>>
 #[allow(dead_code)]
 pub async fn messageGetAll() -> Result<Vec<Message>>
 {
-	let db = getDatabase().lock().await;
+	let mut db = getDatabase().lock().await;
 	
-	let result = db.instance
-		.select(Message::ResourceName)
-		.await?;
+	let result = match db.connection
+	{
+		None => vec![],
+		Some(ref mut conn) => messages.load(conn)?
+	};
 	
 	return Ok(result);
 }
 
-pub async fn userCreate(content: Option<User>) -> Result<Option<User>>
+pub async fn userCreate(newUser: NewUser) -> Result<Option<User>>
 {
-	let db = getDatabase().lock().await;
+	let mut db = getDatabase().lock().await;
 	
-	let result: Vec<User> = db.instance
-		.create(User::ResourceName)
-		.content(content)
-		.await?;
-	
-	let user = match result.first()
+	let user: Option<User> = match db.connection
 	{
-		Some(u) => Some(u.clone()),
 		None => None,
+		Some(ref mut conn) => Some(diesel::insert_into(schema::users::table)
+			.values(newUser)
+			.returning(User::as_returning())
+			.get_result(conn)?)
 	};
 	
 	return Ok(user);
@@ -106,14 +90,13 @@ pub async fn userCreate(content: Option<User>) -> Result<Option<User>>
 #[allow(dead_code)]
 pub async fn userDelete(user: User) -> Result<()>
 {
-	let db = getDatabase().lock().await;
+	let mut db = getDatabase().lock().await;
 	
-	if let Some(thing) = user.id
+	if let Some(ref mut conn) = db.connection
 	{
-		let _: Option<User> = db.instance
-			.delete(thing)
-			.into_future()
-			.await?;
+		diesel::delete(users)
+			.filter(super::schema::users::dsl::id.eq(user.id))
+			.execute(conn)?;
 	}
 	
 	return Ok(());
@@ -121,26 +104,31 @@ pub async fn userDelete(user: User) -> Result<()>
 
 pub async fn userFind(username: String) -> Result<Option<User>>
 {
-	let db = getDatabase().lock().await;
+	let mut db = getDatabase().lock().await;
 	
-	let result = db.instance
-		.query(SelectUserByName)
-		.bind((ParameterUsername, username))
-		.await?
-		.take(0)?;
+	let result = match db.connection
+	{
+		None => None,
+		Some(ref mut conn) => Some(users
+			.filter(super::schema::users::dsl::name.eq(username))
+			.first(conn)?)
+	};
 	
 	return Ok(result);
 }
 
 #[allow(dead_code)]
-pub async fn userGet(id: Thing) -> Result<Option<User>>
+pub async fn userGet(id: i32) -> Result<Option<User>>
 {
-	let db = getDatabase().lock().await;
+	let mut db = getDatabase().lock().await;
 	
-	let result = db.instance
-		.query(format!("{}{}", SelectByIdTemplate, id))
-		.await?
-		.take(0)?;
+	let result = match db.connection
+	{
+		None => None,
+		Some(ref mut conn) => Some(users
+			.find(id)
+			.first(conn)?)
+	};
 	
 	return Ok(result);
 }
@@ -148,11 +136,13 @@ pub async fn userGet(id: Thing) -> Result<Option<User>>
 #[allow(dead_code)]
 pub async fn userGetAll() -> Result<Vec<User>>
 {
-	let db = getDatabase().lock().await;
+	let mut db = getDatabase().lock().await;
 	
-	let result = db.instance
-		.select(User::ResourceName)
-		.await?;
+	let result = match db.connection
+	{
+		None => vec![],
+		Some(ref mut conn) => users.load(conn)?
+	};
 	
 	return Ok(result);
 }
@@ -160,25 +150,18 @@ pub async fn userGetAll() -> Result<Vec<User>>
 #[allow(dead_code)]
 pub async fn userUpdate(user: User) -> Result<Option<User>>
 {
+	let mut db = getDatabase().lock().await;
 	
-	let result = match &user.id
+	let result = match db.connection
 	{
-		Some(thing) => {
-			let content = User
-			{
-				label: user.label.to_owned(),
-				name: user.name.to_owned(),
-				..Default::default()
-			};
-			
-			let db = getDatabase().lock().await;
-			
-			db.instance
-				.update(thing)
-				.content(content)
-				.await?
-		},
 		None => None,
+		Some(ref mut conn) => Some(diesel::update(users.filter(super::schema::users::dsl::id.eq(user.id)))
+			.set((
+				super::schema::users::dsl::name.eq(user.name),
+				super::schema::users::dsl::label.eq(user.label)
+			))
+			.returning(User::as_returning())
+			.get_result(conn)?)
 	};
 	
 	return Ok(result);
@@ -195,23 +178,25 @@ mod tests
 	{
 		{
 			let mut db = getDatabase().lock().await;
-			db.initialize().await.expect("Failed to initialize database");
+			db.dropAll().expect("Failed to drop all tables");
+			db.initialize().expect("Failed to initialize database");
 		}
 		
 		let username = "myusername".to_string();
 		
-		let content = User
+		let newUser = NewUser
 		{
 			name: username.to_owned(),
 			..Default::default()
 		};
 		
-		let mut user = dao::userCreate(Some(content)).await.expect("Error creating test user");
+		println!("new user: {:?}", newUser);
+		let mut user = dao::userCreate(newUser).await.expect("Error creating test user");
 		assert!(user.is_some());
 		
 		if let Some(u) = user.as_mut()
 		{
-			let got = dao::userGet(u.id.clone().unwrap()).await.expect("Error getting user by id");
+			let got = dao::userGet(u.id).await.expect("Error getting user by id");
 			assert!(got.is_some_and(|g| &g == u && g.label.is_none()));
 			
 			u.label = Some("My Username".into());
@@ -227,9 +212,9 @@ mod tests
 			assert_eq!(updatedUser.label, u.label);
 		}
 		
-		let users = dao::userGetAll().await.expect("Error getting all users");
-		assert!(!users.is_empty());
-		let first = users.first();
+		let allUsers = dao::userGetAll().await.expect("Error getting all users");
+		assert!(!allUsers.is_empty());
+		let first = allUsers.first();
 		assert!(first.is_some());
 		let u = first.unwrap();
 		assert_eq!(Some(u.clone()), user);

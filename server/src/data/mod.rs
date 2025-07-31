@@ -1,9 +1,8 @@
 pub mod assets;
 pub mod dao;
 mod db;
-mod dbtype;
 mod model;
+mod schema;
 
 pub use db::getDatabase;
-pub use dbtype::DatabaseType;
-pub use model::{Message, User};
+pub use model::{NewImageAsset, NewMessage, NewScene2D, NewUser, User};

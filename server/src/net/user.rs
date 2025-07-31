@@ -19,33 +19,33 @@ unsafe impl Send for UserManager {}
 
 impl UserManager
 {
-	pub fn getClientId(&self, id: &String) -> Option<i64>
+	pub fn getClientId(&self, username: &String) -> Option<i64>
 	{
 		let mut users = self.users.borrow_mut();
 		
-		if !users.contains_key(id)
+		if !users.contains_key(username)
 		{
-			users.insert(id.to_owned(), self.getNextId());
+			users.insert(username.to_owned(), self.getNextId());
 		}
 		
-		let id = users.get(id)?;
+		let id = users.get(username)?;
 		return Some(*id);
 	}
 	
 	#[allow(dead_code)]
 	pub fn getUserId(&self, clientId: i64) -> Option<String>
 	{
-		let mut id = None;
+		let mut username = None;
 		
 		for (user, client) in self.users.borrow().iter()
 		{
 			if client == &clientId
 			{
-				id = Some(user.to_owned());
+				username = Some(user.to_owned());
 			}
 		}
 		
-		return id;
+		return username;
 	}
 	
 	fn getNextId(&self) -> i64

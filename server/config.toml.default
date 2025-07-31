@@ -3,13 +3,7 @@
 # path = ""
 
 [database]
-# databaseType determines the form of data storage used:
-# 0 - In Memory
-# 1 - File-based
-databaseType = 1
-name = "vtt"
-namespace = "vtt"
-path = "data"
+path = "data.sqlite"
 
 [network]
 ip = "127.0.0.1"

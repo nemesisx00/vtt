@@ -1,12 +1,14 @@
 use std::path::PathBuf;
 use std::sync::OnceLock;
 use ::anyhow::Result;
-use ::surrealdb::Surreal;
-use ::surrealdb::engine::local::{Db, Mem, RocksDb};
+use diesel::RunQueryDsl;
+use ::diesel::{Connection, SqliteConnection};
 use ::tokio::sync::Mutex;
 use crate::config::localDataPath;
+use crate::data::model::{CreateTable_ImageAssets, CreateTable_Messages,
+	CreateTable_Scenes2D, CreateTable_Users, DropTable_ImageAssets,
+	DropTable_Messages, DropTable_Scenes2D, DropTable_Users};
 use crate::getConfig;
-use super::dbtype::DatabaseType;
 
 pub fn getDatabase() -> &'static Mutex<Database>
 {
@@ -14,11 +16,9 @@ pub fn getDatabase() -> &'static Mutex<Database>
 	return DbLock.get_or_init(|| Mutex::new(Database::default()));
 }
 
-#[derive(Debug)]
 pub struct Database
 {
-	initialized: bool,
-	pub instance: Surreal<Db>,
+	pub connection: Option<SqliteConnection>,
 }
 
 impl Default for Database
@@ -27,44 +27,54 @@ impl Default for Database
 	{
 		return Self
 		{
-			initialized: false,
-			instance: Surreal::init(),
+			connection: None,
 		};
 	}
 }
 
 impl Database
 {
-	pub async fn initialize(&mut self) -> Result<()>
+	#[allow(unused)]
+	pub fn dropAll(&mut self) -> Result<()>
 	{
-		if !self.initialized
+		if let Some(ref mut conn) = self.connection
+		{
+			diesel::sql_query(DropTable_ImageAssets).execute(conn)?;
+			diesel::sql_query(DropTable_Messages).execute(conn)?;
+			diesel::sql_query(DropTable_Scenes2D).execute(conn)?;
+			diesel::sql_query(DropTable_Users).execute(conn)?;
+		}
+		
+		return Ok(());
+	}
+	
+	pub fn initialize(&mut self) -> Result<()>
+	{
+		if self.connection.is_none()
 		{
 			let config = getConfig();
-			self.instance = match config.database.databaseType
-			{
-				DatabaseType::Memory => Surreal::new::<Mem>(()).await?,
-				
-				DatabaseType::RocksDB => {
-					let mut filePath = config.database.path.clone();
-					if let Some(dir) = localDataPath()
-					{
-						let buf = PathBuf::from(dir)
-							.join(filePath.clone());
-						
-						if let Ok(p) = buf.into_os_string().into_string()
-						{
-							filePath = p;
-						}
-					}
-					
-					Surreal::new::<RocksDb>(filePath).await?
-				},
-			};
 			
-			self.instance
-				.use_ns(config.database.namespace.to_owned())
-				.use_db(config.database.name.to_owned())
-				.await?;
+			let mut filePath = config.database.path.clone();
+			if let Some(dir) = localDataPath()
+			{
+				let buf = PathBuf::from(dir)
+					.join(filePath.clone());
+				
+				if let Ok(p) = buf.into_os_string().into_string()
+				{
+					filePath = p;
+				}
+			}
+			
+			self.connection = Some(SqliteConnection::establish(&filePath)?);
+		}
+		
+		if let Some(ref mut conn) = self.connection
+		{
+			diesel::sql_query(CreateTable_ImageAssets).execute(conn)?;
+			diesel::sql_query(CreateTable_Messages).execute(conn)?;
+			diesel::sql_query(CreateTable_Scenes2D).execute(conn)?;
+			diesel::sql_query(CreateTable_Users).execute(conn)?;
 		}
 		
 		return Ok(());

@@ -9,7 +9,7 @@ use ::hyper_util::rt::TokioIo;
 use ::log::{info, error};
 use ::tokio_util::sync::CancellationToken;
 use crate::data::dao;
-use crate::data::{Message, User};
+use crate::data::{NewMessage, NewUser, User};
 use crate::data::assets::{loadAsset, Asset, Image};
 use crate::net::user::getUserManager;
 use crate::util::parseDateTime;
@@ -150,7 +150,7 @@ impl WebSocketClient
 				match &self.user
 				{
 					Some(user) => {
-						match &user.id
+						if let Some(newId) = self.userGetClientId(&user.name)
 						{
 							Some(id) => {
 								if let Some(newId) = self.userGetClientId(&id.to_string())
@@ -209,15 +209,15 @@ impl WebSocketClient
 				{
 					self.queueBroadcast(format!("{}: {}", self.username(), text))?;
 					
-					let content = Message
+					let newMessage = NewMessage
 					{
 						text: text.to_owned(),
-						timestamp: Utc::now().timestamp(),
-						userId: user.id.clone(),
+						timestamp: Utc::now().naive_utc(),
+						userId: Some(user.id),
 						..Default::default()
 					};
 					
-					_ = dao::messageCreate(Some(content)).await?;
+					_ = dao::messageCreate(newMessage).await?;
 				}
 			}
 		}
@@ -289,11 +289,11 @@ impl WebSocketClient
 			
 			for m in messages
 			{
-				let username = match m.userId
+				let userId = match m.userId
 				{
 					None => String::default(),
 					Some(userId) => match users.iter()
-						.find(|u| u.id.as_ref().is_some_and(|t| t == &userId))
+						.find(|u| u.id == userId)
 					{
 						None => String::default(),
 						Some(user) => user.name.to_owned(),
@@ -303,10 +303,10 @@ impl WebSocketClient
 				let data: HashMap<String, String> = vec![
 					(
 						"text".to_string(),
-						match username.is_empty()
+						match userId.is_empty()
 						{
 							true => m.text.to_owned(),
-							false => format!("{}: {}", username, m.text),
+							false => format!("{}: {}", userId, m.text),
 						}
 					),
 				].into_iter().collect();
@@ -352,12 +352,12 @@ impl WebSocketClient
 		return Ok(());
 	}
 	
-	fn userGetClientId(&self, userId: &String) -> Option<i64>
+	fn userGetClientId(&self, username: &String) -> Option<i64>
 	{
 		let mut clientId = None;
 		if let Ok(userManager) = getUserManager().lock()
 		{
-			clientId = userManager.getClientId(userId);
+			clientId = userManager.getClientId(username);
 		}
 		
 		return clientId;
@@ -375,13 +375,13 @@ impl WebSocketClient
 			Ok(opt) => match opt
 			{
 				None => {
-					let content = User
+					let newUser = NewUser
 					{
 						name: username.to_owned(),
 						..Default::default()
 					};
 					
-					match dao::userCreate(Some(content)).await
+					match dao::userCreate(newUser).await
 					{
 						Ok(opt) => opt,
 						

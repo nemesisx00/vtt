@@ -1,5 +1,4 @@
 use ::serde::Deserialize;
-use crate::data::DatabaseType;
 
 #[derive(Clone, Debug, Default, Deserialize)]
 pub struct Config
@@ -23,10 +22,7 @@ impl Config
 			
 			database: ConfigDatabase
 			{
-				databaseType: DatabaseType::Memory,
-				name: "vtt".into(),
-				namespace: "vtt".into(),
-				path: "data".into(),
+				path: "testData.sqlite".into(),
 			},
 			
 			network: ConfigNetwork
@@ -47,9 +43,6 @@ pub struct ConfigAssets
 #[derive(Clone, Debug, Default, Deserialize)]
 pub struct ConfigDatabase
 {
-	pub databaseType: DatabaseType,
-	pub name: String,
-	pub namespace: String,
 	pub path: String,
 }
 
