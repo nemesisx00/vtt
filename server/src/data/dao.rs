@@ -1,6 +1,6 @@
 use ::anyhow::Result;
 use ::chrono::NaiveDateTime;
-use ::diesel::{ExpressionMethods, RunQueryDsl, SelectableHelper, QueryDsl};
+use ::diesel::{ExpressionMethods, OptionalExtension, QueryDsl, RunQueryDsl, SelectableHelper};
 use super::db::getDatabase;
 use super::model::{Message, NewMessage, NewUser, User};
 use super::schema;
@@ -109,9 +109,10 @@ pub async fn userFind(username: String) -> Result<Option<User>>
 	let result = match db.connection
 	{
 		None => None,
-		Some(ref mut conn) => Some(users
+		Some(ref mut conn) => users
 			.filter(super::schema::users::dsl::name.eq(username))
-			.first(conn)?)
+			.first(conn)
+			.optional()?
 	};
 	
 	return Ok(result);
@@ -125,9 +126,10 @@ pub async fn userGet(id: i32) -> Result<Option<User>>
 	let result = match db.connection
 	{
 		None => None,
-		Some(ref mut conn) => Some(users
+		Some(ref mut conn) => users
 			.find(id)
-			.first(conn)?)
+			.first(conn)
+			.optional()?
 	};
 	
 	return Ok(result);
