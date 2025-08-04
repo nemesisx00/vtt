@@ -11,8 +11,14 @@ public partial class Token : CharacterBody2D
 		public static readonly NodePath Selection = new("%Selection");
 	}
 	
-	public const int Height = 100;
-	public const int Width = 100;
+	[Signal]
+	public delegate void ReachedDestinationEventHandler(long id, Vector2 position);
+	
+	[Signal]
+	public delegate void TokenDeselectedEventHandler(Token self);
+	
+	[Signal]
+	public delegate void TokenSelectedEventHandler(Token self);
 	
 	public Vector2 Destination
 	{
@@ -24,6 +30,11 @@ public partial class Token : CharacterBody2D
 		}
 	}
 	
+	public static int Height { get; set; } = 100;
+	public static int Width { get; set; } = 100;
+	
+	public long Id { get; set; }
+	
 	public Texture2D IconImage
 	{
 		get => icon.Texture;
@@ -31,6 +42,9 @@ public partial class Token : CharacterBody2D
 	}
 	
 	public bool Selected => selectionSprite.Visible;
+	
+	[Export]
+	public bool SnapToGrid { get; set; } = true;
 	
 	[Export]
 	private float speed = 500.0f;
@@ -65,18 +79,31 @@ public partial class Token : CharacterBody2D
 		Callable.From(prepareNavigationAgent).CallDeferred();
 	}
 	
+	private void handleNavigationFinished()
+	{
+		GlobalPosition = Destination;
+		EmitSignal(SignalName.ReachedDestination, Id, GlobalPosition);
+	}
+	
 	private async void prepareNavigationAgent()
 	{
 		await ToSignal(GetTree(), SceneTree.SignalName.PhysicsFrame);
 		navAgent.TargetPosition = GlobalPosition;
 		SetPhysicsProcess(true);
+		navAgent.NavigationFinished += handleNavigationFinished;
 	}
 	
 	private void toggleSelection()
 	{
-		if(selectionSprite.Visible)
+		if (selectionSprite.Visible)
+		{
 			selectionSprite.Hide();
+			EmitSignal(SignalName.TokenDeselected, this);
+		}
 		else
+		{
 			selectionSprite.Show();
+			EmitSignal(SignalName.TokenSelected, this);
+		}
 	}
 }

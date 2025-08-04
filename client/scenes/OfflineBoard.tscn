@@ -1,0 +1,35 @@
+[gd_scene load_steps=4 format=3 uid="uid://cn7ctn0grd7yh"]
+
+[ext_resource type="Script" path="res://scenes/OfflineBoard.cs" id="1_h2m2p"]
+[ext_resource type="PackedScene" uid="uid://chi66h63xblfd" path="res://scenes/CommandCard.tscn" id="2_63udi"]
+
+[sub_resource type="PlaneMesh" id="PlaneMesh_sjp2h"]
+size = Vector2(700, 500)
+orientation = 2
+
+[node name="TestScene" type="Node2D"]
+script = ExtResource("1_h2m2p")
+
+[node name="Background" type="MeshInstance2D" parent="."]
+unique_name_in_owner = true
+modulate = Color(0.192157, 0.682353, 0.411765, 0.72549)
+position = Vector2(652, 345)
+mesh = SubResource("PlaneMesh_sjp2h")
+
+[node name="Grid" type="Node2D" parent="Background"]
+unique_name_in_owner = true
+
+[node name="TokenList" type="Node2D" parent="."]
+unique_name_in_owner = true
+position = Vector2(652, 345)
+
+[node name="Line" type="Line2D" parent="."]
+unique_name_in_owner = true
+default_color = Color(0, 0, 0, 1)
+end_cap_mode = 2
+
+[node name="CommandCard" parent="." instance=ExtResource("2_63udi")]
+unique_name_in_owner = true
+visible = false
+offset_right = 134.0
+offset_bottom = 110.0

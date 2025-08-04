@@ -15,8 +15,9 @@ public partial class MainMenu : MarginContainer
 		public static readonly NodePath IpAddress = new("%IpAddress");
 		public static readonly NodePath Login = new("%Login");
 		public static readonly NodePath LoginUi = new("%LoginUI");
-		public static readonly NodePath UsernameInput = new("%UsernameInput");
 		public static readonly NodePath Quit = new("%Quit");
+		public static readonly NodePath StartOffline = new("%OfflineButton");
+		public static readonly NodePath UsernameInput = new("%UsernameInput");
 	}
 	
 	private const int DefaultPort = 8080;
@@ -45,6 +46,7 @@ public partial class MainMenu : MarginContainer
 		ipAddress = GetNode<LineEdit>(NodePaths.IpAddress);
 		usernameInput = GetNode<LineEdit>(NodePaths.UsernameInput);
 		
+		GetNode<Button>(NodePaths.StartOffline).Pressed += () => GetTree().ChangeSceneToFile(Scenes.OfflineBoard);
 		GetNode<Button>(NodePaths.Connect).Pressed += handleConnectButton;
 		GetNode<Button>(NodePaths.Login).Pressed += handleLoginButton;
 		GetNode<Button>(NodePaths.Quit).Pressed += handleQuit;

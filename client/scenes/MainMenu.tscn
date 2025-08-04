@@ -26,6 +26,13 @@ theme_override_font_sizes/font_size = 60
 text = "Virtual Table Top"
 horizontal_alignment = 1
 
+[node name="OfflineButton" type="Button" parent="VBoxContainer"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(150, 50)
+layout_mode = 2
+size_flags_horizontal = 4
+text = "Start Offline"
+
 [node name="ConnectUI" type="VBoxContainer" parent="VBoxContainer"]
 unique_name_in_owner = true
 layout_mode = 2
